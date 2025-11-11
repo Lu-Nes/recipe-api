@@ -1,5 +1,4 @@
 import { Schema, model } from "mongoose";
-import bcrypt from "bcrypt";
 
 
 const userSchema = new Schema({
@@ -26,22 +25,7 @@ const userSchema = new Schema({
     }
 });
 
-// Passwort vorm Speichern hashen (nur wenn neu, oder geändert)
-userSchema.pre("save", async function (next) {
-    if (!this.isModified("password")) 
-        return next();
 
-    try {
-        const saltRounds = 12;
-        const salt = await bcrypt.genSalt(saltRounds);
-        this.password = await bcrypt.hash(this.password, salt);
-        next();
-    } catch (error) {
-        next(error);
-    }
-});
-
+// Model exportieren
 const User = model("User", userSchema);
-
-
 export default User;

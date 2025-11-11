@@ -7,6 +7,8 @@ import dbConnect from "./libs/dbConnect.js";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+dbConnect();
+
 app.use(cors({
   origin: process.env.FRONTEND_URL,
   credentials: true

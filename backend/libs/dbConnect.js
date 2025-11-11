@@ -11,7 +11,7 @@ const dbConnect = async () => {
         console.log("Verbunden mit MongoDB!");
     } catch (error) {
         console.error("Verbindungsfehler mit MongoDB!", error);
-        process(1);
+        process.exit(1);
     }
 };
 

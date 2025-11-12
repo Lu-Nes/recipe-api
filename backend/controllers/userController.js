@@ -62,3 +62,19 @@ export const login = async (req, res) => {
         return res.status(500).json({ message: "Interner Serverfehler!" });
     }
 };
+
+
+export const getProfile = async (req, res) => {
+    // re.userId kommt aus der auth-Middleware
+    try {
+        const user = await User.findById(req.userId).select("-password")    // gibt alle Felder unter der User-Id zurück, außer das Passwort
+        if (!user) {
+            return res.status(404).json({ message: "User nicht gefunden!" });
+        }
+
+        return res.status(200).json({ message: "Profil geladen", user });
+    } catch (error) {
+        console.error("Fehler beim Laden des Profils:", error);
+        return res.status(500).json({ message: "Interner Serverfehler" });
+    }
+};

@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { body } from "express-validator";
 import { register, login } from "../controllers/userController.js";
+import { getProfile } from "../controllers/userController.js";
+import auth from "../middleware/auth.js";
 
 
 const router = Router();
@@ -22,5 +24,9 @@ router
         ],
         login
     );
+
+    // Geschützte Route: Profil
+    router
+        .get("/profile", auth, getProfile);
 
     export default router;

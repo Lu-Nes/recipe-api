@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import { validationResult } from "express-validator";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 
 export const register = async (req, res) => {
@@ -13,7 +14,7 @@ export const register = async (req, res) => {
     try {
         const exists = await User.findOne({ email });
         if (exists)
-            return res.status(409).json({ msg: "E-Mail ist bereits registriert!" });
+            return res.status(409).json({ message: "E-Mail ist bereits registriert!" });
 
         const salt = await bcrypt.genSalt(12);
         const hashed = await bcrypt.hash(password, salt);
@@ -22,11 +23,42 @@ export const register = async (req, res) => {
         const { password: _, ...safeUser } = user.toObject();
 
         return res.status(201).json({
-            msg: "Registrierung erfolgreich",
-            user : safeUser
+            message: "Registrierung erfolgreich",
+            user: safeUser
         });
     } catch (error) {
-        console.error("Fehler bei der registrierung:", error);
-        return res.status(500).json({ msg: "Interner Serverfehler!" });
+        console.error("Fehler bei der Registrierung:", error);
+        return res.status(500).json({ message: "Interner Serverfehler!" });
+    }
+};
+
+
+export const login = async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty())
+        return res.status(400).json({ errors: errors.array() });
+
+    const { email, password } = req.body;
+
+    try {
+        const user = await User.findOne({ email });
+        if (!user)
+            return res.status(401).json({ message: "Ungültige Zugangsdaten!" });
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch)
+            return res.status(401).json({ message: "Ungültige Zugangsdaten!" });
+
+        const token = jwt.sign(
+            { id: user._id },
+            process.env.JWT_SECRET,
+            { expiresIn: process.env.JWT_EXPIRES_IN }
+        );
+
+        res.cookie("token", token, {httpOnly: true, sameSite: "lax" });
+        return res.status(200).json({ message: "Login erfolgreich" });
+    } catch (error) {
+        console.error("Fehler beim Login:", error);
+        return res.status(500).json({ message: "Interner Serverfehler!" });
     }
 };

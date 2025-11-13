@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { body, param, query } from "express-validator";
-import { createRecipe, getRecipes, getRecipeById, updateRecipe, deleteRecipe } from "../controllers/recipeController.js";
+import { createRecipe, getRecipes, getRecipeById, updateRecipe, deleteRecipe, getMyRecipes } from "../controllers/recipeController.js";
 import requireAuth from "../middleware/auth.js";
 
 const router = Router();
@@ -22,6 +22,7 @@ router.post(
     createRecipe
 );
 
+
 // GET /recipes - Liste, optional ?search=
 router
     .get(
@@ -31,6 +32,13 @@ router
         ],
         getRecipes
     );
+
+
+// GET /recipes/my-recipes - Eigene Rezepte des eingeloggten Nutzers
+router
+    .get("/my-recipes", requireAuth, getMyRecipes);
+
+
 
 // GET /recipes/:id - einzelnes Rezept
 router
@@ -44,6 +52,7 @@ router
 
     .put ("/:id", requireAuth, updateRecipe)
 
-    .delete ("/:id",requireAuth, deleteRecipe)
+    .delete ("/:id",requireAuth, deleteRecipe);
+
 
 export default router;

@@ -1,5 +1,6 @@
 import { validationResult } from "express-validator";
 import Recipe from "../models/Recipe.js";
+import User from "../models/User.js";
 
 
 // POST /recipes (auth) - Rezept anlegen
@@ -166,5 +167,27 @@ export const deleteRecipe = async (req, res) => {
     } catch (error) {
         console.error("Fehler beim Löschen des Rezepts!", error);
         res.status(500).json({ message: "Interner Serverfehler!"});      
+    }
+};
+
+
+// GET /recipes/my-recipes (auth) - Eigene Rezepte des eingeloggten Users
+export const getMyRecipes = async (req, res) => {
+    try {
+        // User-ID aus dem Token
+        const userId = req.userId;
+
+        // Alle Rezepte finden, bei denen author = aktuelle User-ID
+        const recipes = await Recipe.find({ author: userId })
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({
+            message: "Eigene Rezepte geladen",
+            count: recipes.length,
+            recipes
+        });
+    } catch (error) {
+        console.error("Fehler beim Laden der eigenen Rezepte:", error);
+        res.status(500).json({ message: "Interner Serverfehler!" });
     }
 };

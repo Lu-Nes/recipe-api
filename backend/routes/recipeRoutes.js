@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { body, param, query } from "express-validator";
-import { createRecipe, getRecipes, getRecipeById, getMyRecipes, updateRecipe, deleteRecipe } from "../controllers/recipeController.js";
+import { createRecipe, getRecipes, getRecipeById, updateRecipe, deleteRecipe } from "../controllers/recipeController.js";
 import requireAuth from "../middleware/auth.js";
 
 const router = Router();
@@ -23,23 +23,27 @@ router.post(
 );
 
 // GET /recipes - Liste, optional ?search=
-router.get(
-    "/",
-    [
-        query("search").optional().isString().withMessage("search muss ein String sein!")
-    ],
-    getRecipes
-);
+router
+    .get(
+        "/",
+        [
+            query("search").optional().isString().withMessage("search muss ein String sein!")
+        ],
+        getRecipes
+    );
 
 // GET /recipes/:id - einzelnes Rezept
-router.get(
-    "/:id",
-    [
-        param("id").isMongoId().withMessage("Ungültige ID!")
-    ],
-    getRecipeById
-)
+router
+    .get(
+        "/:id",
+        [
+            param("id").isMongoId().withMessage("Ungültige ID!")
+        ],
+        getRecipeById
+    )
 
-    .put ("/:id", requireAuth, updateRecipe);
+    .put ("/:id", requireAuth, updateRecipe)
+
+    .delete ("/:id",requireAuth, deleteRecipe)
 
 export default router;

@@ -20,7 +20,7 @@ app.use(cookieParser());
 app.use("/users", userRoutes);
 app.use("/recipes", recipeRoutes);
 
-// 🇩🇪 Health-Route 
+// Health-Route 
 app.get("/health", (req, res) => {
   return res.status(200).json({
     status: "ok",

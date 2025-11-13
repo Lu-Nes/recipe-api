@@ -23,7 +23,7 @@ export const createRecipe = async (req, res) => {
     } = req.body;
 
     try {
-        const author = req.user?.id;
+        const author = req.userId;
         if (!author)
             return res.status(401).json({ message: "Nicht autorisiert!" });
 
@@ -103,7 +103,7 @@ export const updateRecipe = async (req, res) => {
         }
 
         // Autoren-Prüfung: nur der Ersteller darf bearbeiten
-        if (recipe.author.toString() !== req.user._id.toString()) {
+        if (recipe.author.toString() !== req.userId.toString()) {
             return res.status(403).json({ message: "Du darfst dieses Rezept nicht bearbeiten!" });
         }
 
@@ -132,14 +132,39 @@ export const updateRecipe = async (req, res) => {
         if (steps)recipe.steps = steps;
 
         // Änderungen speichern
-        const updateRecipe = await recipe.save();
+        const updatedRecipe = await recipe.save();
 
         res.status(200).json({
             message: "Rezept wurde aktualisiert",
-            recipe: updateRecipe
+            recipe: updatedRecipe
         });
     } catch (error) {
         console.error("Fehler beim Aktualisieren des Rezepts:", error);
         res.status(500).json({ message: "Interner serverfehler!" });
+    }
+};
+
+
+export const deleteRecipe = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const recipe = await Recipe.findById(id);
+
+        if (!recipe) {
+            return res.status(404).json({ message: "Rezept wurde nicht gefunden!" });
+        }
+
+        // Autoren-Prüfung: Nur der Ersteller darf löschen
+        if(recipe.author.toString() !== req.userId.toString()) {
+            return res.status(403).json({ message: "Du hast keine Berechtigung das Rezept zu löschen!" });
+        }
+
+        await recipe.deleteOne();
+
+        res.status(200).json({ message: "Rezept wurde gelöscht" });
+    } catch (error) {
+        console.error("Fehler beim Löschen des Rezepts!", error);
+        res.status(500).json({ message: "Interner Serverfehler!"});      
     }
 };

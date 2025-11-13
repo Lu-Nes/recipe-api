@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { body, param, query } from "express-validator";
-import { createRecipe, getRecipes, getRecipeById } from "../controllers/recipeController.js";
+import { createRecipe, getRecipes, getRecipeById, getMyRecipes, updateRecipe, deleteRecipe } from "../controllers/recipeController.js";
 import requireAuth from "../middleware/auth.js";
 
 const router = Router();
@@ -38,6 +38,8 @@ router.get(
         param("id").isMongoId().withMessage("Ungültige ID!")
     ],
     getRecipeById
-);
+)
+
+    .put ("/:id", requireAuth, updateRecipe);
 
 export default router;

@@ -3,6 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import dbConnect from "./libs/dbConnect.js";
 import userRoutes from "./routes/userRoutes.js";
+import recipeRoutes from "./routes/recipeRoutes.js";
 
 
 const app = express();
@@ -17,6 +18,7 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 app.use("/users", userRoutes);
+app.use("/recipes", recipeRoutes);
 
 // 🇩🇪 Health-Route 
 app.get("/health", (req, res) => {

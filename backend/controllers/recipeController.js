@@ -2,7 +2,7 @@ import { validationResult } from "express-validator";
 import Recipe from "../models/Recipe.js";
 
 
-// POST /recipe (auth) - Rezept anlegen
+// POST /recipes (auth) - Rezept anlegen
 export const createRecipe = async (req, res) => {
     const errors = validationResult(req);
     // Validierungfehler aus den Routerregeln einsammeln

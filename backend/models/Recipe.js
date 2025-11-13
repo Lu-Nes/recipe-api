@@ -1,5 +1,4 @@
 import { Schema, model } from "mongoose";
-import auth from "../middleware/auth";
 
 
 const recipeSchema = new Schema({
@@ -34,7 +33,7 @@ const recipeSchema = new Schema({
         type: Number,
         default: 1
     },
-    difficultly: {
+    difficulty: {
         type: String,
         enum: ["easy", "medium", "hard"],
         default: "easy"

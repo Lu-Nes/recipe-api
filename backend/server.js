@@ -17,6 +17,7 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(cookieParser());
+app.use("/uploads", express.static("uploads"));             // Bilder aus dem Uploads-Ordner statisch ausliefern
 app.use("/users", userRoutes);
 app.use("/recipes", recipeRoutes);
 

@@ -55,7 +55,7 @@ export const login = async (req, res) => {
             { expiresIn: process.env.JWT_EXPIRES_IN }
         );
 
-        res.cookie("token", token, {httpOnly: true, sameSite: "lax" });
+        res.cookie("token", token, {httpOnly: true, sameSite: "none", secure: true });
         return res.status(200).json({ message: "Login erfolgreich" });
     } catch (error) {
         console.error("Fehler beim Login:", error);

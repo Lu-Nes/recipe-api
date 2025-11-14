@@ -1,7 +1,9 @@
 import { Router } from "express";
 import { body, param, query } from "express-validator";
-import { createRecipe, getRecipes, getRecipeById, updateRecipe, deleteRecipe, getMyRecipes } from "../controllers/recipeController.js";
+import { createRecipe, getRecipes, getRecipeById, updateRecipe, deleteRecipe, getMyRecipes, uploadRecipeImage } from "../controllers/recipeController.js";
 import requireAuth from "../middleware/auth.js";
+import upload from "../middleware/upload.js";
+
 
 const router = Router();
 
@@ -37,6 +39,19 @@ router
 // GET /recipes/my-recipes - Eigene Rezepte des eingeloggten Nutzers
 router
     .get("/my-recipes", requireAuth, getMyRecipes);
+
+
+// POST /recipes/:id/image - Bild für ein Rezept hochladen
+router
+    .post(
+        "/:id/image",
+        requireAuth,
+        [
+            param("id").isMongoId().withMessage("Ungültige ID!")
+        ],
+        upload.single("image"),
+        uploadRecipeImage
+    );
 
 
 

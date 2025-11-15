@@ -1,6 +1,6 @@
 import { validationResult } from "express-validator";
 import Recipe from "../models/Recipe.js";
-import User from "../models/User.js";
+// import User from "../models/User.js";
 
 
 // POST /recipes (auth) - Rezept anlegen

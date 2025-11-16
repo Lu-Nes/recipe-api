@@ -11,10 +11,26 @@ const PORT = process.env.PORT || 3000;
 
 dbConnect();
 
+// CORS für Entwicklung (Vite) und Produktion (Render-Frontend)
+const allowedOrigins = [
+  "http://localhost:5173",
+  process.env.FRONTEND_URL
+]
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL,
+  origin: function (origin, callback) {
+    // Anfragen ohne Origin (z. B. Thunder Client) erlauben
+    if (!origin) return callback(null, true)
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true)
+    } else {
+      return callback(new Error("CORS not allowed by server"), false)
+    }
+  },
   credentials: true
 }));
+
 app.use(express.json());
 app.use(cookieParser());
 app.use("/uploads", express.static("uploads"));             // Bilder aus dem Uploads-Ordner statisch ausliefern

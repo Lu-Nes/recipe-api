@@ -1,20 +1,47 @@
-import { useState } from 'react';
+import { useState } from "react";
+import { loginUser } from "../services/api";
 
 function Login() {
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
+    email: "",
+    password: "",
   });
+
+  // Meldungen und Ladezustand für UI
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
+    // Verhinder Neuladen der Seite
     event.preventDefault();
-    // TODO: Hier später API-Aufruf einfügen
-    console.log('Login-Daten', formData);
+
+    // Alte Meldungen zurücksetzen
+    setErrorMessage("");
+    setSuccessMessage("");
+    setIsLoading(true);
+
+    try {
+      // API-Aufruf ans Backend mit Formular-Daten
+      const result = await loginUser(formData);
+
+      const message =
+        result && result.message ? result.message : "Login erfolgreich";
+
+      // einfacher Login-Status im localStorage (für spätere Navigation / UI-Anpassungen)
+      localStorage.setItem("isLoggedIn", "true");
+
+      setSuccessMessage(message);
+    } catch (error) {
+      setErrorMessage(error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -44,7 +71,17 @@ function Login() {
           required
         />
 
-        <button type="submit">Anmelden</button>
+        <button type="submit" disabled={isLoading}>
+          {isLoading ? "Anmelden..." : "Anmelden"}
+        </button>
+
+        {errorMessage !== "" && (
+          <p className="form-message form-message--error">{errorMessage}</p>
+        )}
+
+        {successMessage !== "" && (
+          <p className="form-message form-message--success">{successMessage}</p>
+        )}
       </form>
     </section>
   );

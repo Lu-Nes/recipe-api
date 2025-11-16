@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { loginUser } from "../services/api";
 
-function Login() {
+// setIsLoggedIn kommt als Prop von App.jsx
+function Login({ setIsLoggedIn }) {
   const [formData, setFormData] = useState({
     email: "",
-    password: "",
+    password: ""
   });
 
   // Meldungen und Ladezustand für UI
@@ -12,13 +13,13 @@ function Login() {
   const [successMessage, setSuccessMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleChange = (event) => {
+  const handleChange = event => {
     const { name, value } = event.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (event) => {
-    // Verhinder Neuladen der Seite
+  const handleSubmit = async event => {
+    // Verhindert Neuladen der Seite
     event.preventDefault();
 
     // Alte Meldungen zurücksetzen
@@ -33,8 +34,13 @@ function Login() {
       const message =
         result && result.message ? result.message : "Login erfolgreich";
 
-      // einfacher Login-Status im localStorage (für spätere Navigation / UI-Anpassungen)
+      // Einfacher Login-Status im localStorage (für spätere Navigation / UI-Anpassungen)
       localStorage.setItem("isLoggedIn", "true");
+
+      // Wenn die Funktion aus App.jsx übergeben wurde, Login-Status im React-State aktualisieren
+      if (typeof setIsLoggedIn === "function") {
+        setIsLoggedIn(true);
+      }
 
       setSuccessMessage(message);
     } catch (error) {
@@ -48,7 +54,7 @@ function Login() {
     <section className="page">
       <h1>Login</h1>
       <p>Melde dich an, um deine Rezepte zu verwalten.</p>
-      <form className="form" onSubmit={handleSubmit}>
+      <form className="form" onSubmit={event => handleSubmit(event)}>
         <label htmlFor="email">E-Mail</label>
         <input
           id="email"
@@ -56,7 +62,7 @@ function Login() {
           type="email"
           placeholder="E-Mail eingeben"
           value={formData.email}
-          onChange={handleChange}
+          onChange={event => handleChange(event)}
           required
         />
 
@@ -67,7 +73,7 @@ function Login() {
           type="password"
           placeholder="Passwort eingeben"
           value={formData.password}
-          onChange={handleChange}
+          onChange={event => handleChange(event)}
           required
         />
 
@@ -80,7 +86,9 @@ function Login() {
         )}
 
         {successMessage !== "" && (
-          <p className="form-message form-message--success">{successMessage}</p>
+          <p className="form-message form-message--success">
+            {successMessage}
+          </p>
         )}
       </form>
     </section>

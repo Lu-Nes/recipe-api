@@ -1,42 +1,33 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import RecipeCard from "../components/RecipeCard";
+import { fetchRecipes } from "../services/api";
 
 function Recipes() {
-  // Zustand für geladene Rezepte, Ladeanzeige und Fehler
   const [recipes, setRecipes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Beim ersten Render Rezepte aus dem Backend laden
+  // Rezepte aus Backend laden
   useEffect(() => {
     async function loadRecipes() {
       try {
         setIsLoading(true);
         setError(null);
 
-        // Öffentlicher API-Aufruf zum Backend (ohne /api-Prefix)
-        const response = await fetch("http://localhost:3000/recipes");
-
-        if (!response.ok) {
-          throw new Error("Fehler beim Laden der Rezepte");
-        }
-
-        // Antwort direkt als JSON parsen
-        const data = await response.json();
+        const data = await fetchRecipes(); // ← API-Layer verwenden
         console.log("Antwort-Daten von /recipes:", data);
 
-        // Wir wissen: Backend liefert ein Objekt mit { recipes: [...], count: Zahl }
         if (Array.isArray(data.recipes)) {
           setRecipes(data.recipes);
         } else if (Array.isArray(data)) {
-          // Fallback, falls sich das Backend später ändert
           setRecipes(data);
         } else {
           setRecipes([]);
           setError("Server hat ein unerwartetes Datenformat zurückgegeben.");
         }
       } catch (error) {
+        console.error("Fehler beim Laden der Rezepte:", error);
         setError(error.message);
         setRecipes([]);
       } finally {
@@ -47,7 +38,7 @@ function Recipes() {
     loadRecipes();
   }, []);
 
-  // Daten für die RecipeCard-Komponente in ein einheitliches Format bringen
+  // Vereinheitlichte Daten für RecipeCard
   const normalizedRecipes = recipes.map(recipe => {
     return {
       id: recipe._id || recipe.id,

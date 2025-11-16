@@ -5,39 +5,34 @@ import dbConnect from "./libs/dbConnect.js";
 import userRoutes from "./routes/userRoutes.js";
 import recipeRoutes from "./routes/recipeRoutes.js";
 
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 dbConnect();
 
-// CORS für Entwicklung (Vite) und Produktion (Render-Frontend)
-const allowedOrigins = [
-  "http://localhost:5173",
-  process.env.FRONTEND_URL
-]
+// Erlaubte Ursprünge für CORS
+// - Lokales Vite-Frontend
+// - Später: Deploytes Frontend aus der .env (FRONTEND_URL)
+const allowedOrigins = ["http://localhost:5173"];
 
-app.use(cors({
-  origin: function (origin, callback) {
-    // Anfragen ohne Origin (z. B. Thunder Client) erlauben
-    if (!origin) return callback(null, true)
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
 
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true)
-    } else {
-      return callback(new Error("CORS not allowed by server"), false)
-    }
-  },
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true
+  })
+);
 
 app.use(express.json());
 app.use(cookieParser());
-app.use("/uploads", express.static("uploads"));             // Bilder aus dem Uploads-Ordner statisch ausliefern
+app.use("/uploads", express.static("uploads")); // Bilder aus dem Uploads-Ordner statisch ausliefern
 app.use("/users", userRoutes);
 app.use("/recipes", recipeRoutes);
 
-// Health-Route 
+// Health-Route
 app.get("/health", (req, res) => {
   return res.status(200).json({
     status: "ok",
@@ -49,5 +44,5 @@ app.get("/health", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server läuft unter http://localhost:${PORT}`);
   console.log(`Healthcheck:  http://localhost:${PORT}/health`);
-  console.log(`CORS erlaubt:  ${process.env.FRONTEND_URL}`);
+  console.log(`CORS erlaubt:  ${allowedOrigins.join(", ")}`);
 });

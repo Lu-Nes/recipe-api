@@ -55,7 +55,16 @@ export const login = async (req, res) => {
             { expiresIn: process.env.JWT_EXPIRES_IN }
         );
 
-        res.cookie("token", token, {httpOnly: true, sameSite: "none", secure: true });
+        // *** EINZIGE ÄNDERUNG: Cookie lokal funktional machen ***
+        const isProduction = process.env.NODE_ENV === "production";
+
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: isProduction,                 // lokal: false (wichtig!), Render: true
+            sameSite: isProduction ? "none" : "lax", // lokal: lax → Cookie wird akzeptiert
+            maxAge: 24 * 60 * 60 * 1000
+        });
+
         return res.status(200).json({ message: "Login erfolgreich" });
     } catch (error) {
         console.error("Fehler beim Login:", error);

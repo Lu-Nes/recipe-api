@@ -24,6 +24,17 @@ function App() {
     }
   }, []);
 
+  // Kleine Schutz-Komponente: blockiert Zugriff, wenn User nicht eingeloggt ist
+  function ProtectedRoute({ children }) {
+    // Wenn der User nicht eingeloggt ist, zeigen wir das Login-Formular
+    if (!isLoggedIn) {
+      return <Login setIsLoggedIn={setIsLoggedIn} />;
+    }
+
+    // Wenn eingeloggt, dann geschützten Inhalt anzeigen
+    return children;
+  }
+
   return (
     <div className="app-layout">
       {/* Header bekommt Login-Status und Setter */}
@@ -39,9 +50,33 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/recipes" element={<Recipes />} />
           <Route path="/recipes/:id" element={<RecipeDetails />} />
-          <Route path="/my-recipes" element={<MyRecipes />} />
-          <Route path="/create" element={<CreateRecipe />} />
-          <Route path="/edit/:id" element={<EditRecipe />} />
+
+          {/* Geschützte Bereiche */}
+          <Route
+            path="/my-recipes"
+            element={
+              <ProtectedRoute>
+                <MyRecipes />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/create"
+            element={
+              <ProtectedRoute>
+                <CreateRecipe />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/edit/:id"
+            element={
+              <ProtectedRoute>
+                <EditRecipe />
+              </ProtectedRoute>
+            }
+          />
+
           <Route path="/impressum" element={<Impressum />} />
         </Routes>
       </main>

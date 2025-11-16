@@ -1,24 +1,62 @@
-import { Link } from 'react-router-dom';
-import RecipeCard from '../components/RecipeCard';
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import RecipeCard from "../components/RecipeCard";
 
 function Recipes() {
-  // TODO: Später API-Aufruf nutzen, um Rezepte zu laden
-  const recipes = [
-    {
-      id: 1,
-      title: 'Hausgemachte Pasta',
-      category: 'Italienisch',
-      description: 'Frische Pasta mit cremiger Tomatensauce.',
-      author: 'Anna',
-    },
-    {
-      id: 2,
-      title: 'Veganes Curry',
-      category: 'Asiatisch',
-      description: 'Aromatisches Gemüse-Curry in Kokosmilch.',
-      author: 'Lukas',
-    },
-  ];
+  // Zustand für geladene Rezepte, Ladeanzeige und Fehler
+  const [recipes, setRecipes] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Beim ersten Render Rezepte aus dem Backend laden
+  useEffect(() => {
+    async function loadRecipes() {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // Öffentlicher API-Aufruf zum Backend (ohne /api-Prefix)
+        const response = await fetch("http://localhost:3000/recipes");
+
+        if (!response.ok) {
+          throw new Error("Fehler beim Laden der Rezepte");
+        }
+
+        // Antwort direkt als JSON parsen
+        const data = await response.json();
+        console.log("Antwort-Daten von /recipes:", data);
+
+        // Wir wissen: Backend liefert ein Objekt mit { recipes: [...], count: Zahl }
+        if (Array.isArray(data.recipes)) {
+          setRecipes(data.recipes);
+        } else if (Array.isArray(data)) {
+          // Fallback, falls sich das Backend später ändert
+          setRecipes(data);
+        } else {
+          setRecipes([]);
+          setError("Server hat ein unerwartetes Datenformat zurückgegeben.");
+        }
+      } catch (error) {
+        setError(error.message);
+        setRecipes([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadRecipes();
+  }, []);
+
+  // Daten für die RecipeCard-Komponente in ein einheitliches Format bringen
+  const normalizedRecipes = recipes.map(recipe => {
+    return {
+      id: recipe._id || recipe.id,
+      title: recipe.title,
+      category: recipe.category,
+      description: recipe.description,
+      author: recipe.author?.name || "Unbekannt"
+    };
+  });
 
   return (
     <section className="page">
@@ -31,13 +69,32 @@ function Recipes() {
           Neues Rezept
         </Link>
       </div>
-      <div className="grid">
-        {recipes.map((recipe) => (
-          <Link to={`/recipes/${recipe.id}`} key={recipe.id}>
-            <RecipeCard recipe={recipe} />
-          </Link>
-        ))}
-      </div>
+
+      {isLoading && (
+        <p className="info-text">Rezepte werden geladen...</p>
+      )}
+
+      {error && !isLoading && (
+        <p className="error-text">
+          Fehler beim Laden der Rezepte: {error}
+        </p>
+      )}
+
+      {!isLoading && !error && normalizedRecipes.length === 0 && (
+        <p className="info-text">
+          Noch keine Rezepte vorhanden.
+        </p>
+      )}
+
+      {!isLoading && !error && normalizedRecipes.length > 0 && (
+        <div className="grid">
+          {normalizedRecipes.map(recipe => (
+            <Link to={`/recipes/${recipe.id}`} key={recipe.id}>
+              <RecipeCard recipe={recipe} />
+            </Link>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

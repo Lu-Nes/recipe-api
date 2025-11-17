@@ -4,7 +4,6 @@ import { fetchRecipeById, deleteRecipe, uploadRecipeImage, API_BASE_URL } from "
 
 function getImageUrl(recipe) {
   if (!recipe || !recipe.image) return null
-
   const image = recipe.image
 
   if (image.startsWith("http")) return image
@@ -52,10 +51,7 @@ function RecipeDetails() {
   }, [id])
 
   const handleDelete = async () => {
-    const shouldDelete = window.confirm(
-      "Möchtest du dieses Rezept wirklich löschen?"
-    )
-
+    const shouldDelete = window.confirm("Möchtest du dieses Rezept wirklich löschen?")
     if (!shouldDelete) return
 
     try {
@@ -63,8 +59,6 @@ function RecipeDetails() {
       setError(null)
 
       await deleteRecipe(id)
-      console.log("Rezept erfolgreich gelöscht")
-
       navigate("/recipes")
     } catch (error) {
       console.error("Fehler beim Löschen des Rezepts:", error)
@@ -97,28 +91,31 @@ function RecipeDetails() {
   }
 
   const imageUrl = getImageUrl(recipe)
+  const buttonStyle = { fontSize: "1rem" }
 
   return (
     <section className="page">
       <h1>Rezeptdetails</h1>
 
       {isLoading && <p className="info-text">Rezept wird geladen...</p>}
-      {error && !isLoading && <p className="error-text">Fehler: {error}</p>}
+      {error && <p className="error-text">Fehler: {error}</p>}
 
       {!isLoading && !error && recipe && (
         <>
+          {/* Oberes Rezept-Panel */}
           <article className="card">
-
             <h2 style={{ textAlign: "center", marginBottom: "1rem" }}>
               {recipe.title}
             </h2>
 
             {imageUrl && (
-              <div style={{
-                display: "flex",
-                justifyContent: "center",
-                marginBottom: "1.5rem"
-              }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  marginBottom: "1.5rem"
+                }}
+              >
                 <img
                   src={imageUrl}
                   alt={recipe.title}
@@ -157,13 +154,49 @@ function RecipeDetails() {
             )}
           </article>
 
-          <div className="image-upload">
-            <h3>Rezeptbild hochladen</h3>
-            <p className="info-text">
-              Erlaubt sind JPG oder PNG.
-            </p>
+          {/* Bereich Upload-Box + Aktionsbuttons nebeneinander */}
+          <div
+            style={{
+              display: "flex",
+              gap: "2rem",
+              alignItems: "flex-start",
+              marginTop: "2rem",
+              flexWrap: "wrap"
+            }}
+          >
+            {/* Upload-Box links, etwas schmaler */}
+            <div
+              className="image-upload"
+              style={{
+                backgroundColor: "rgba(255,255,255,0.05)",
+                padding: "1rem 1.5rem",
+                borderRadius: "12px",
+                flex: "1 1 320px",
+                maxWidth: "480px"
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "1rem"
+                }}
+              >
+                <p className="info-text" style={{ margin: 0 }}>
+                  Erlaubt sind JPG oder PNG.
+                </p>
 
-            <div style={{ marginBottom: "1.5rem" }}>
+                <button
+                  type="button"
+                  className="button"
+                  style={buttonStyle}
+                  onClick={() => document.getElementById("image-upload").click()}
+                >
+                  📁 Datei auswählen
+                </button>
+              </div>
+
               <input
                 id="image-upload"
                 type="file"
@@ -172,64 +205,71 @@ function RecipeDetails() {
                 onChange={event => setImageFile(event.target.files[0] || null)}
               />
 
+              {imageFile && (
+                <p style={{ marginBottom: "1rem" }}>
+                  Gewählte Datei: <strong>{imageFile.name}</strong>
+                </p>
+              )}
+
               <button
                 type="button"
                 className="button"
-                onClick={() => document.getElementById("image-upload").click()}
-                style={{ marginBottom: "0.5rem" }}
+                style={buttonStyle}
+                onClick={handleImageUpload}
+                disabled={!imageFile || isUploading}
               >
-                📁 Datei auswählen
+                {isUploading ? "Bild wird hochgeladen..." : "Bild hochladen"}
               </button>
 
-              {imageFile && (
-                <span style={{ marginLeft: "1rem" }}>
-                  {imageFile.name}
-                </span>
+              {uploadError && (
+                <p className="error-text">{uploadError}</p>
               )}
             </div>
 
-            <button
-              type="button"
-              className="button"
-              onClick={handleImageUpload}
-              disabled={!imageFile || isUploading}
+            {/* Buttons „Rezept bearbeiten / löschen“ rechts, untereinander */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "1rem",
+                flex: "0 0 220px"
+              }}
             >
-              {isUploading ? "Bild wird hochgeladen..." : "Bild hochladen"}
-            </button>
+              <Link
+                to={`/edit/${recipe._id || recipe.id}`}
+                className="button"
+                style={buttonStyle}
+              >
+                Rezept bearbeiten
+              </Link>
 
-            {uploadError && (
-              <p className="error-text">
-                Fehler beim Bild-Upload: {uploadError}
-              </p>
-            )}
+              <button
+                type="button"
+                className="button button--danger"
+                style={buttonStyle}
+                onClick={handleDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Rezept wird gelöscht..." : "Rezept löschen"}
+              </button>
+            </div>
           </div>
 
+          {/* „Zurück zur Übersicht“ mittig darunter */}
           <div
-            className="page__actions"
             style={{
+              marginTop: "2.5rem",
               display: "flex",
-              gap: "1rem",
-              alignItems: "center"
+              justifyContent: "center"
             }}
           >
-            <Link to="/recipes" className="button button--secondary">
+            <Link
+              to="/recipes"
+              className="button button--secondary"
+              style={buttonStyle}
+            >
               Zurück zur Übersicht
             </Link>
-
-            <Link to={`/edit/${recipe._id || recipe.id}`} className="button">
-              Rezept bearbeiten
-            </Link>
-
-            <div style={{ flex: 1 }}></div>
-
-            <button
-              type="button"
-              className="button button--danger"
-              onClick={handleDelete}
-              disabled={isDeleting}
-            >
-              {isDeleting ? "Rezept wird gelöscht..." : "Rezept löschen"}
-            </button>
           </div>
         </>
       )}

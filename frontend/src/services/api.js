@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:3000"
+export const API_BASE_URL = "http://localhost:3000"
 
 export async function loginUser(data) {
   // Schickt Login-Daten ans Backend
@@ -185,6 +185,33 @@ export async function deleteRecipe(id) {
 
     if (!response.ok) {
       const message = responseData && responseData.message ? responseData.message : "Rezept konnte nicht gelöscht werden!"
+
+      throw new Error(message)
+    }
+
+    return responseData
+  } catch (error) {
+    throw error
+  }
+}
+
+export async function uploadRecipeImage(id, file) {
+  // Lädt ein Bild für ein Rezept hoch (auth-pflichtig, nur Autor)
+  try {
+    const formData = new FormData()
+    // Feldname "image" muss zum Multer-Setup passen
+    formData.append("image", file)
+
+    const response = await fetch(`${API_BASE_URL}/recipes/${id}/image`, {
+      method: "POST",
+      credentials: "include",
+      body: formData
+    })
+
+    const responseData = await response.json().catch(() => null)
+
+    if (!response.ok) {
+      const message = responseData && responseData.message ? responseData.message : "Rezeptbild konnte nicht hochgeladen werden!"
 
       throw new Error(message)
     }

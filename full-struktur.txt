@@ -1,0 +1,66 @@
+.
+├── backend
+│   ├── controllers
+│   │   ├── recipeController.js
+│   │   └── userController.js
+│   ├── libs
+│   │   └── dbConnect.js
+│   ├── middleware
+│   │   ├── auth.js
+│   │   └── upload.js
+│   ├── models
+│   │   ├── Recipe.js
+│   │   └── User.js
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── routes
+│   │   ├── recipeRoutes.js
+│   │   └── userRoutes.js
+│   ├── server.js
+│   └── uploads
+│       ├── 1763068664743-Beispielbild Rezepte-App.jpg
+│       └── 1763247557862-Beispielbild Rezepte-App.jpg
+├── frontend
+│   ├── dist
+│   │   ├── assets
+│   │   │   ├── index-BCtx_COk.js
+│   │   │   └── index-DISHc-7q.css
+│   │   ├── favicon.png
+│   │   └── index.html
+│   ├── eslint.config.js
+│   ├── index.html
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── public
+│   │   └── favicon.png
+│   ├── README.md
+│   ├── src
+│   │   ├── App.jsx
+│   │   ├── assets
+│   │   │   └── logo.svg
+│   │   ├── components
+│   │   │   ├── Footer.jsx
+│   │   │   ├── Header.jsx
+│   │   │   ├── LogoIcon.jsx
+│   │   │   ├── RecipeCard.jsx
+│   │   │   └── ThemeToggle.jsx
+│   │   ├── main.jsx
+│   │   ├── pages
+│   │   │   ├── CreateRecipe.jsx
+│   │   │   ├── EditRecipe.jsx
+│   │   │   ├── Home.jsx
+│   │   │   ├── Impressum.jsx
+│   │   │   ├── Login.jsx
+│   │   │   ├── MyRecipes.jsx
+│   │   │   ├── RecipeDetails.jsx
+│   │   │   ├── Recipes.jsx
+│   │   │   └── Register.jsx
+│   │   ├── services
+│   │   │   └── api.js
+│   │   └── styles
+│   │       └── global.css
+│   └── vite.config.js
+├── full-struktur.txt
+└── README.md
+
+18 directories, 46 files

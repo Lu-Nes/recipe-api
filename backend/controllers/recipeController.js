@@ -58,16 +58,15 @@ export const getRecipes = async (req, res) => {
         const filter = search
             ? {
                 $or: [
-                    { title: {$regex: search, $options: "i" } },
-                    { description: {$regex: search, $options: "i" 
-                    } }
+                    { title: { $regex: search, $options: "i" } },
+                    { description: { $regex: search, $options: "i" } }
                 ]
             }
             : {};
 
-            const recipes = await Recipe.find(filter)
-                .sort({ createdAt: -1 })
-                .populate("author", "name");           // Nur den Namen des Autors anzeigen
+        const recipes = await Recipe.find(filter)
+            .sort({ createdAt: -1 })
+            .populate("author", "name");           // Nur den Namen des Autors anzeigen
 
         res.status(200).json({ recipes, count: recipes.length });
     } catch (error) {
@@ -130,7 +129,7 @@ export const updateRecipe = async (req, res) => {
         if (servings) recipe.servings = servings;
         if (difficulty) recipe.difficulty = difficulty;
         if (ingredients) recipe.ingredients = ingredients;
-        if (steps)recipe.steps = steps;
+        if (steps) recipe.steps = steps;
 
         // Änderungen speichern
         const updatedRecipe = await recipe.save();
@@ -157,7 +156,7 @@ export const deleteRecipe = async (req, res) => {
         }
 
         // Autoren-Prüfung: Nur der Ersteller darf löschen
-        if(recipe.author.toString() !== req.userId.toString()) {
+        if (recipe.author.toString() !== req.userId.toString()) {
             return res.status(403).json({ message: "Du hast keine Berechtigung das Rezept zu löschen!" });
         }
 
@@ -166,7 +165,7 @@ export const deleteRecipe = async (req, res) => {
         res.status(200).json({ message: "Rezept wurde gelöscht" });
     } catch (error) {
         console.error("Fehler beim Löschen des Rezepts!", error);
-        res.status(500).json({ message: "Interner Serverfehler!"});      
+        res.status(500).json({ message: "Interner Serverfehler!" });
     }
 };
 
@@ -179,7 +178,8 @@ export const getMyRecipes = async (req, res) => {
 
         // Alle Rezepte finden, bei denen author = aktuelle User-ID
         const recipes = await Recipe.find({ author: userId })
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .populate("author", "name");   // Autor-Name wie bei getRecipes
 
         res.status(200).json({
             message: "Eigene Rezepte geladen",
@@ -199,7 +199,7 @@ export const uploadRecipeImage = async (req, res) => {
 
     try {
         const recipe = await Recipe.findById(id);
-        
+
         if (!recipe) {
             return res.status(404).json({ message: "Rezept wurde nicht gefunden!" });
         }
@@ -218,7 +218,7 @@ export const uploadRecipeImage = async (req, res) => {
         recipe.image = imagePath;
 
         const updatedRecipe = await recipe.save();
-        
+
         res.status(200).json({
             message: "Rezeptbild wurde aktualisiert",
             recipe: updatedRecipe

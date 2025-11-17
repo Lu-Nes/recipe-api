@@ -1,7 +1,6 @@
-import { API_BASE_URL } from "../services/api"
+const API_BASE_URL = "http://localhost:3000"
 
 function getImageUrl(recipe) {
-  // Hilfsfunktion, um aus dem image-Feld eine vollständige URL zu machen
   if (!recipe || !recipe.image) {
     return null
   }
@@ -26,18 +25,6 @@ function RecipeCard({ recipe }) {
 
   const imageUrl = getImageUrl(recipe)
 
-  let authorName = ""
-
-  if (recipe.author) {
-    // Falls bereits ein String (z. B. aus MyRecipes-Normalisierung)
-    if (typeof recipe.author === "string") {
-      authorName = recipe.author
-    } else if (typeof recipe.author === "object" && recipe.author.name) {
-      // Falls ein Author-Objekt mit name-Feld
-      authorName = recipe.author.name
-    }
-  }
-
   return (
     <article className="card">
       {imageUrl && (
@@ -49,9 +36,15 @@ function RecipeCard({ recipe }) {
       )}
 
       <h3>{recipe.title}</h3>
-      <p className="card__meta">Kategorie: {recipe.category ?? "Unbekannt"}</p>
+      <p className="card__meta">
+        Kategorie: {recipe.category ?? "Unbekannt"}
+      </p>
       <p>{recipe.description}</p>
-      {authorName && <p className="card__author">Autor: {authorName}</p>}
+      {recipe.author && (
+        <p className="card__author">
+          Autor: {recipe.author}
+        </p>
+      )}
     </article>
   )
 }

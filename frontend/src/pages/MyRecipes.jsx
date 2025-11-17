@@ -24,8 +24,6 @@ function MyRecipes() {
 
         // 401: Kein Token / nicht eingeloggt
         if (response.status === 401) {
-          console.log("401-Antwort von /recipes/my-recipes:", text)
-
           let message = "Du bist nicht eingeloggt oder deine Sitzung ist abgelaufen."
           try {
             const json = JSON.parse(text)
@@ -33,37 +31,37 @@ function MyRecipes() {
               message = json.message
             }
           } catch {
-            // Wenn kein gültiges JSON, Standardtext lassen
+            // Ignorieren, Standardtext bleibt
           }
 
           throw new Error(message)
         }
 
         if (!response.ok) {
-          console.log("Fehler-Antwort vom Server (my-recipes):", text)
           throw new Error("Fehler beim Laden deiner Rezepte")
         }
 
         let data
         try {
           data = JSON.parse(text)
-        } catch (parseError) {
-          console.log("Antwort war kein gültiges JSON (my-recipes):", text)
+        } catch {
           throw new Error("Server hat keine gültigen JSON-Daten zurückgegeben.")
         }
 
         console.log("Antwort-Daten von /recipes/my-recipes:", data)
 
+        let list = []
         if (Array.isArray(data)) {
-          setRecipes(data)
+          list = data
         } else if (Array.isArray(data.recipes)) {
-          setRecipes(data.recipes)
+          list = data.recipes
         } else {
-          console.log("Unerwartetes Datenformat von /recipes/my-recipes:", data)
           throw new Error("Server hat ein unerwartetes Datenformat zurückgegeben.")
         }
-      } catch (error) {
-        setError(error.message)
+
+        setRecipes(list)
+      } catch (err) {
+        setError(err.message)
         setRecipes([])
       } finally {
         setIsLoading(false)
@@ -73,16 +71,14 @@ function MyRecipes() {
     loadMyRecipes()
   }, [])
 
-  const normalizedRecipes = recipes.map(recipe => {
-    return {
-      id: recipe._id || recipe.id,
-      title: recipe.title,
-      category: recipe.category,
-      description: recipe.description,
-      author: recipe.author?.name || "Unbekannt",
-      image: recipe.image
-    }
-  })
+  const normalizedRecipes = recipes.map(recipe => ({
+    id: recipe._id || recipe.id,
+    title: recipe.title,
+    category: recipe.category,
+    description: recipe.description,
+    author: recipe.author && recipe.author.name ? recipe.author.name : "Unbekannt",
+    image: recipe.image
+  }))
 
   return (
     <section className="page">

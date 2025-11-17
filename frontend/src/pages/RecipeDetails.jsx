@@ -1,126 +1,240 @@
+import { useParams, Link, useNavigate } from "react-router-dom"
 import { useEffect, useState } from "react"
-import { Link } from "react-router-dom"
-import RecipeCard from "../components/RecipeCard"
+import { fetchRecipeById, deleteRecipe, uploadRecipeImage, API_BASE_URL } from "../services/api"
 
-function MyRecipes() {
-  // Zustand für eigene Rezepte, Ladeanzeige und Fehler
-  const [recipes, setRecipes] = useState([])
+function getImageUrl(recipe) {
+  if (!recipe || !recipe.image) return null
+
+  const image = recipe.image
+
+  if (image.startsWith("http")) return image
+  if (image.startsWith("/")) return API_BASE_URL + image
+
+  return `${API_BASE_URL}/${image}`
+}
+
+function RecipeDetails() {
+  const { id } = useParams()
+  const navigate = useNavigate()
+
+  const [recipe, setRecipe] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [error, setError] = useState(null)
 
-  // Eigene Rezepte beim ersten Render laden
+  const [imageFile, setImageFile] = useState(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadError, setUploadError] = useState(null)
+
   useEffect(() => {
-    async function loadMyRecipes() {
+    async function loadRecipe() {
       try {
         setIsLoading(true)
         setError(null)
 
-        // Authentifizierter Request: Cookies müssen mitgeschickt werden
-        const response = await fetch("http://localhost:3000/recipes/my-recipes", {
-          credentials: "include"
-        })
+        const data = await fetchRecipeById(id)
+        console.log("Rezeptdetails (Rohdaten):", data)
 
-        const text = await response.text()
-
-        // 401: Kein Token / nicht eingeloggt
-        if (response.status === 401) {
-          console.log("401-Antwort von /recipes/my-recipes:", text)
-
-          let message = "Du bist nicht eingeloggt oder deine Sitzung ist abgelaufen."
-          try {
-            const json = JSON.parse(text)
-            if (json.message) {
-              message = json.message
-            }
-          } catch {
-            // Wenn kein gültiges JSON, Standardtext lassen
-          }
-
-          throw new Error(message)
-        }
-
-        if (!response.ok) {
-          console.log("Fehler-Antwort vom Server (my-recipes):", text)
-          throw new Error("Fehler beim Laden deiner Rezepte")
-        }
-
-        let data
-        try {
-          data = JSON.parse(text)
-        } catch (parseError) {
-          console.log("Antwort war kein gültiges JSON (my-recipes):", text)
-          throw new Error("Server hat keine gültigen JSON-Daten zurückgegeben.")
-        }
-
-        console.log("Antwort-Daten von /recipes/my-recipes:", data)
-
-        if (Array.isArray(data)) {
-          setRecipes(data)
-        } else if (Array.isArray(data.recipes)) {
-          setRecipes(data.recipes)
+        if (data && data.recipe) {
+          setRecipe(data.recipe)
         } else {
-          console.log("Unerwartetes Datenformat von /recipes/my-recipes:", data)
-          throw new Error("Server hat ein unerwartetes Datenformat zurückgegeben.")
+          setRecipe(data)
         }
       } catch (error) {
+        console.error("Fehler beim Laden des Rezepts:", error)
         setError(error.message)
-        setRecipes([])
       } finally {
         setIsLoading(false)
       }
     }
 
-    loadMyRecipes()
-  }, [])
+    loadRecipe()
+  }, [id])
 
-  const normalizedRecipes = recipes.map(recipe => {
-    return {
-      id: recipe._id || recipe.id,
-      title: recipe.title,
-      category: recipe.category,
-      description: recipe.description,
-      // Eigene Rezepte: Autor bist du selbst
-      author: "Du",
-      image: recipe.image
+  const handleDelete = async () => {
+    const shouldDelete = window.confirm(
+      "Möchtest du dieses Rezept wirklich löschen?"
+    )
+
+    if (!shouldDelete) return
+
+    try {
+      setIsDeleting(true)
+      setError(null)
+
+      await deleteRecipe(id)
+      console.log("Rezept erfolgreich gelöscht")
+
+      navigate("/recipes")
+    } catch (error) {
+      console.error("Fehler beim Löschen des Rezepts:", error)
+      setError(error.message || "Rezept konnte nicht gelöscht werden.")
+      setIsDeleting(false)
     }
-  })
+  }
+
+  const handleImageUpload = async () => {
+    if (!recipe || !imageFile) return
+
+    try {
+      setIsUploading(true)
+      setUploadError(null)
+
+      const data = await uploadRecipeImage(recipe._id || recipe.id, imageFile)
+      console.log("Antwort nach Bild-Upload:", data)
+
+      if (data && data.recipe) {
+        setRecipe(data.recipe)
+      }
+
+      setImageFile(null)
+    } catch (error) {
+      console.error("Fehler beim Hochladen des Bildes:", error)
+      setUploadError(error.message || "Bild konnte nicht hochgeladen werden.")
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const imageUrl = getImageUrl(recipe)
 
   return (
     <section className="page">
-      <h1>Meine Rezepte</h1>
-      <p>Hier erscheinen deine gespeicherten Gerichte.</p>
+      <h1>Rezeptdetails</h1>
 
-      {isLoading && (
-        <p className="info-text">Deine Rezepte werden geladen...</p>
-      )}
+      {isLoading && <p className="info-text">Rezept wird geladen...</p>}
+      {error && !isLoading && <p className="error-text">Fehler: {error}</p>}
 
-      {error && !isLoading && (
-        <p className="error-text">
-          {error}
-        </p>
-      )}
+      {!isLoading && !error && recipe && (
+        <>
+          <article className="card">
 
-      {!isLoading && !error && normalizedRecipes.length === 0 && (
-        <p className="info-text">
-          Noch keine eigenen Rezepte vorhanden. Lege über &quot;Rezept erstellen&quot; dein erstes an.
-        </p>
-      )}
+            <h2 style={{ textAlign: "center", marginBottom: "1rem" }}>
+              {recipe.title}
+            </h2>
 
-      {!isLoading && !error && normalizedRecipes.length > 0 && (
-        <div className="grid">
-          {normalizedRecipes.map(recipe => (
-            <Link
-              key={recipe.id}
-              to={`/recipes/${recipe.id}`}
-              className="card-link"
+            {imageUrl && (
+              <div style={{
+                display: "flex",
+                justifyContent: "center",
+                marginBottom: "1.5rem"
+              }}>
+                <img
+                  src={imageUrl}
+                  alt={recipe.title}
+                  style={{
+                    maxWidth: "400px",
+                    width: "100%",
+                    height: "auto",
+                    borderRadius: "8px"
+                  }}
+                />
+              </div>
+            )}
+
+            <p>{recipe.description}</p>
+
+            {recipe.ingredients?.length > 0 && (
+              <>
+                <h3>Zutaten</h3>
+                <ul style={{ textAlign: "left" }}>
+                  {recipe.ingredients.map((item, index) => (
+                    <li key={index}>{item}</li>
+                  ))}
+                </ul>
+              </>
+            )}
+
+            {recipe.steps?.length > 0 && (
+              <>
+                <h3>Zubereitung</h3>
+                <ol style={{ textAlign: "left" }}>
+                  {recipe.steps.map((item, index) => (
+                    <li key={index}>{item}</li>
+                  ))}
+                </ol>
+              </>
+            )}
+          </article>
+
+          <div className="image-upload">
+            <h3>Rezeptbild hochladen</h3>
+            <p className="info-text">
+              Erlaubt sind JPG oder PNG.
+            </p>
+
+            <div style={{ marginBottom: "1.5rem" }}>
+              <input
+                id="image-upload"
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={event => setImageFile(event.target.files[0] || null)}
+              />
+
+              <button
+                type="button"
+                className="button"
+                onClick={() => document.getElementById("image-upload").click()}
+                style={{ marginBottom: "0.5rem" }}
+              >
+                📁 Datei auswählen
+              </button>
+
+              {imageFile && (
+                <span style={{ marginLeft: "1rem" }}>
+                  {imageFile.name}
+                </span>
+              )}
+            </div>
+
+            <button
+              type="button"
+              className="button"
+              onClick={handleImageUpload}
+              disabled={!imageFile || isUploading}
             >
-              <RecipeCard recipe={recipe} />
+              {isUploading ? "Bild wird hochgeladen..." : "Bild hochladen"}
+            </button>
+
+            {uploadError && (
+              <p className="error-text">
+                Fehler beim Bild-Upload: {uploadError}
+              </p>
+            )}
+          </div>
+
+          <div
+            className="page__actions"
+            style={{
+              display: "flex",
+              gap: "1rem",
+              alignItems: "center"
+            }}
+          >
+            <Link to="/recipes" className="button button--secondary">
+              Zurück zur Übersicht
             </Link>
-          ))}
-        </div>
+
+            <Link to={`/edit/${recipe._id || recipe.id}`} className="button">
+              Rezept bearbeiten
+            </Link>
+
+            <div style={{ flex: 1 }}></div>
+
+            <button
+              type="button"
+              className="button button--danger"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Rezept wird gelöscht..." : "Rezept löschen"}
+            </button>
+          </div>
+        </>
       )}
     </section>
   )
 }
 
-export default MyRecipes
+export default RecipeDetails

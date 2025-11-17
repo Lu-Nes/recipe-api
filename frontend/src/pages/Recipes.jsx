@@ -1,53 +1,52 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import RecipeCard from "../components/RecipeCard";
-import { fetchRecipes } from "../services/api";
+import { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
+import RecipeCard from "../components/RecipeCard"
+import { fetchRecipes } from "../services/api"
 
 function Recipes() {
-  const [recipes, setRecipes] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [recipes, setRecipes] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   // Rezepte aus Backend laden
   useEffect(() => {
     async function loadRecipes() {
       try {
-        setIsLoading(true);
-        setError(null);
+        setIsLoading(true)
+        setError(null)
 
-        const data = await fetchRecipes(); // ← API-Layer verwenden
-        console.log("Antwort-Daten von /recipes:", data);
+        const data = await fetchRecipes()
+        console.log("Antwort-Daten von /recipes:", data)
 
-        if (Array.isArray(data.recipes)) {
-          setRecipes(data.recipes);
-        } else if (Array.isArray(data)) {
-          setRecipes(data);
+        let list = []
+        if (Array.isArray(data)) {
+          list = data
+        } else if (Array.isArray(data.recipes)) {
+          list = data.recipes
         } else {
-          setRecipes([]);
-          setError("Server hat ein unerwartetes Datenformat zurückgegeben.");
+          throw new Error("Server hat ein unerwartetes Datenformat zurückgegeben.")
         }
-      } catch (error) {
-        console.error("Fehler beim Laden der Rezepte:", error);
-        setError(error.message);
-        setRecipes([]);
+
+        setRecipes(list)
+      } catch (err) {
+        setError(err.message)
+        setRecipes([])
       } finally {
-        setIsLoading(false);
+        setIsLoading(false)
       }
     }
 
-    loadRecipes();
-  }, []);
+    loadRecipes()
+  }, [])
 
-  // Vereinheitlichte Daten für RecipeCard
-  const normalizedRecipes = recipes.map(recipe => {
-    return {
-      id: recipe._id || recipe.id,
-      title: recipe.title,
-      category: recipe.category,
-      description: recipe.description,
-      author: recipe.author?.name || "Unbekannt"
-    };
-  });
+  const normalizedRecipes = recipes.map(recipe => ({
+    id: recipe._id || recipe.id,
+    title: recipe.title,
+    category: recipe.category,
+    description: recipe.description,
+    author: recipe.author && recipe.author.name ? recipe.author.name : "Unbekannt",
+    image: recipe.image
+  }))
 
   return (
     <section className="page">
@@ -56,9 +55,6 @@ function Recipes() {
           <h1>Alle Rezepte</h1>
           <p>Entdecke neue Ideen und lass dich inspirieren.</p>
         </div>
-        <Link to="/create" className="button">
-          Neues Rezept
-        </Link>
       </div>
 
       {isLoading && (
@@ -67,7 +63,7 @@ function Recipes() {
 
       {error && !isLoading && (
         <p className="error-text">
-          Fehler beim Laden der Rezepte: {error}
+          {error}
         </p>
       )}
 
@@ -80,14 +76,18 @@ function Recipes() {
       {!isLoading && !error && normalizedRecipes.length > 0 && (
         <div className="grid">
           {normalizedRecipes.map(recipe => (
-            <Link to={`/recipes/${recipe.id}`} key={recipe.id}>
+            <Link
+              key={recipe.id}
+              to={`/recipes/${recipe.id}`}
+              className="card-link"
+            >
               <RecipeCard recipe={recipe} />
             </Link>
           ))}
         </div>
       )}
     </section>
-  );
+  )
 }
 
-export default Recipes;
+export default Recipes

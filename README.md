@@ -1,7 +1,16 @@
-# Recipe API – Dokumentation
+# Recipe API
 
-Willkommen zur vollständigen Dokumentation der **Recipe API**.  
-Diese README dient als zentrale Übersicht über alle Endpunkte, deren Parameter, mögliche Fehlerfälle sowie Beispielanfragen und -Antworten.
+Fullstack-Rezept-App mit React-Frontend, Node.js-/Express-Backend, MongoDB-Datenbank, Authentifizierung, geschützten CRUD-Routen und Bild-Upload.
+
+Diese README dokumentiert die wichtigsten Funktionen, technische Grundlagen und verfügbaren API-Endpunkte.
+
+## Tech Stack
+
+- Frontend: React
+- Backend: Node.js, Express
+- Datenbank: MongoDB
+- Authentifizierung: HttpOnly JWT-Cookies
+- Uploads: lokaler Upload-Ordner für Rezeptbilder
 
 ---
 

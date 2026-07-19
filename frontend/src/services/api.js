@@ -1,4 +1,29 @@
-export const API_BASE_URL = "http://localhost:3000"
+const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim()
+const apiBaseUrl = configuredApiBaseUrl || (import.meta.env.DEV ? "http://localhost:3000" : null)
+
+if (!apiBaseUrl) {
+  throw new Error("VITE_API_BASE_URL muss außerhalb der Vite-Entwicklungsumgebung gesetzt sein.")
+}
+
+export const API_BASE_URL = apiBaseUrl.replace(/\/+$/, "")
+
+export function getImageUrl(image) {
+  if (typeof image !== "string") {
+    return null
+  }
+
+  const imagePath = image.trim()
+
+  if (!imagePath) {
+    return null
+  }
+
+  if (/^https?:\/\//i.test(imagePath)) {
+    return imagePath
+  }
+
+  return `${API_BASE_URL}/${imagePath.replace(/^\/+/, "")}`
+}
 
 export async function loginUser(data) {
   // Schickt Login-Daten ans Backend
@@ -110,7 +135,10 @@ export async function fetchMyRecipes() {
     const responseData = await response.json().catch(() => null)
 
     if (!response.ok) {
-      const message = responseData && responseData.message ? responseData.message : "Eigene Rezepte konnten nicht geladen werden!"
+      const fallbackMessage = response.status === 401
+        ? "Du bist nicht eingeloggt oder deine Sitzung ist abgelaufen."
+        : "Fehler beim Laden deiner Rezepte"
+      const message = responseData && responseData.message ? responseData.message : fallbackMessage
 
       throw new Error(message)
     }

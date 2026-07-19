@@ -1,29 +1,11 @@
-const API_BASE_URL = "http://localhost:3000"
-
-function getImageUrl(recipe) {
-  if (!recipe || !recipe.image) {
-    return null
-  }
-
-  const image = recipe.image
-
-  if (typeof image === "string" && image.startsWith("http")) {
-    return image
-  }
-
-  if (typeof image === "string" && image.startsWith("/")) {
-    return API_BASE_URL + image
-  }
-
-  return `${API_BASE_URL}/${image}`
-}
+import { getImageUrl } from "../services/api"
 
 function RecipeCard({ recipe }) {
   if (!recipe) {
     return null
   }
 
-  const imageUrl = getImageUrl(recipe)
+  const imageUrl = getImageUrl(recipe.image)
 
   return (
     <article className="card">

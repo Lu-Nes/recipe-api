@@ -1,16 +1,6 @@
 import { useParams, Link, useNavigate } from "react-router-dom"
 import { useEffect, useState } from "react"
-import { fetchRecipeById, deleteRecipe, uploadRecipeImage, API_BASE_URL } from "../services/api"
-
-function getImageUrl(recipe) {
-  if (!recipe || !recipe.image) return null
-  const image = recipe.image
-
-  if (image.startsWith("http")) return image
-  if (image.startsWith("/")) return API_BASE_URL + image
-
-  return `${API_BASE_URL}/${image}`
-}
+import { fetchRecipeById, deleteRecipe, uploadRecipeImage, getImageUrl } from "../services/api"
 
 function RecipeDetails() {
   const { id } = useParams()
@@ -90,7 +80,7 @@ function RecipeDetails() {
     }
   }
 
-  const imageUrl = getImageUrl(recipe)
+  const imageUrl = getImageUrl(recipe?.image)
   const buttonStyle = { fontSize: "1rem" }
 
   return (

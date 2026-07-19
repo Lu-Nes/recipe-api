@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import RecipeCard from "../components/RecipeCard"
+import { fetchMyRecipes } from "../services/api"
 
 function MyRecipes() {
   // Zustand für eigene Rezepte, Ladeanzeige und Fehler
@@ -15,36 +16,9 @@ function MyRecipes() {
         setIsLoading(true)
         setError(null)
 
-        // Authentifizierter Request: Cookies müssen mitgeschickt werden
-        const response = await fetch("http://localhost:3000/recipes/my-recipes", {
-          credentials: "include"
-        })
+        const data = await fetchMyRecipes()
 
-        const text = await response.text()
-
-        // 401: Kein Token / nicht eingeloggt
-        if (response.status === 401) {
-          let message = "Du bist nicht eingeloggt oder deine Sitzung ist abgelaufen."
-          try {
-            const json = JSON.parse(text)
-            if (json.message) {
-              message = json.message
-            }
-          } catch {
-            // Ignorieren, Standardtext bleibt
-          }
-
-          throw new Error(message)
-        }
-
-        if (!response.ok) {
-          throw new Error("Fehler beim Laden deiner Rezepte")
-        }
-
-        let data
-        try {
-          data = JSON.parse(text)
-        } catch {
+        if (data === null) {
           throw new Error("Server hat keine gültigen JSON-Daten zurückgegeben.")
         }
 

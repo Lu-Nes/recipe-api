@@ -2,24 +2,29 @@ import jwt from "jsonwebtoken";
 
 
 const auth = (req, res, next) => {
-    //Cookie "token" auslesen
     const token = req.cookies && req.cookies.token;
 
     if(!token) {
-        return res.status(401).json({ message: "Nicht autorisiert: Kein Token gefunden! "});
+        return res.status(401).json({ message: "Nicht autorisiert: Keine gültige Session" });
     }
 
     try {
-        // Token prüfen (Signatur und Ablauf)
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-        // User-ID aus dem Token in die Request legen (für Controller nutzbar)
+        // Geschützte Controller benötigen die geprüfte User-ID aus der Session.
         req.userId = decoded.id;
 
         next();
     } catch (error) {
-        console.error("Ungültiges, oder abgelaufenes Token:", error.message);
-        return res.status(401).json({ message: "Nicht autorisiert: Ungültiges Token" });
+        // Das ungültige Cookie wird entfernt, damit es nicht bei jedem Request erneut geprüft wird.
+        res.clearCookie("token", {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
+        });
+
+        console.error("Ungültiges oder abgelaufenes Token:", error.message);
+        return res.status(401).json({ message: "Nicht autorisiert: Keine gültige Session" });
     }
 };
 

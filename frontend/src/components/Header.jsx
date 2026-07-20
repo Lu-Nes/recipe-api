@@ -1,7 +1,8 @@
-import { Link, NavLink } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import LogoIcon from './LogoIcon';
 import ThemeToggle from './ThemeToggle';
+import { logoutUser } from '../services/api';
 
 // Navigationslinks für Hauptmenü
 const primaryLinks = [
@@ -19,8 +20,17 @@ const actionLinks = [
   { to: '/register', label: 'Registrieren', variant: 'primary' }
 ];
 
+function getErrorMessage(error, fallbackMessage) {
+  return error instanceof Error && error.message
+    ? error.message
+    : fallbackMessage;
+}
+
 function Header({ isLoggedIn, setIsLoggedIn }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLogoutLoading, setIsLogoutLoading] = useState(false);
+  const [logoutError, setLogoutError] = useState('');
+  const navigate = useNavigate();
 
   const toggleMenu = () => {
     setIsMenuOpen(prev => !prev);
@@ -30,14 +40,26 @@ function Header({ isLoggedIn, setIsLoggedIn }) {
     setIsMenuOpen(false);
   };
 
-  // Logout-Funktion: Login-Status zurücksetzen
-  const handleLogout = () => {
-    // Login-Status im localStorage entfernen
-    localStorage.removeItem('isLoggedIn');
-    // React-State aktualisieren, damit UI sich anpasst
-    setIsLoggedIn(false);
-    // Mobiles Menü schließen (falls offen)
-    closeMenu();
+  const handleLogout = async () => {
+    if (isLogoutLoading) {
+      return;
+    }
+
+    setLogoutError('');
+    setIsLogoutLoading(true);
+
+    try {
+      await logoutUser();
+      await setIsLoggedIn(false);
+      closeMenu();
+      navigate('/');
+    } catch (error) {
+      setLogoutError(
+        getErrorMessage(error, 'Logout fehlgeschlagen. Bitte versuche es erneut.')
+      );
+    } finally {
+      setIsLogoutLoading(false);
+    }
   };
 
   return (
@@ -96,9 +118,10 @@ function Header({ isLoggedIn, setIsLoggedIn }) {
             <button
               type="button"
               onClick={handleLogout}
+              disabled={isLogoutLoading}
               className="header__link header__link--action header__link--outline"
             >
-              Logout
+              {isLogoutLoading ? 'Wird abgemeldet...' : 'Logout'}
             </button>
           )}
         </div>
@@ -116,6 +139,12 @@ function Header({ isLoggedIn, setIsLoggedIn }) {
           Menü
         </button>
       </div>
+
+      {logoutError !== '' && (
+        <p className="form-message form-message--error" role="alert">
+          {logoutError}
+        </p>
+      )}
 
       {/* Mobiles Menü */}
       <div
@@ -165,9 +194,10 @@ function Header({ isLoggedIn, setIsLoggedIn }) {
             <button
               type="button"
               onClick={handleLogout}
+              disabled={isLogoutLoading}
               className="header__link header__link--action header__link--outline"
             >
-              Logout
+              {isLogoutLoading ? 'Wird abgemeldet...' : 'Logout'}
             </button>
           )}
         </div>

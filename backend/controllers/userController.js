@@ -55,13 +55,13 @@ export const login = async (req, res) => {
             { expiresIn: process.env.JWT_EXPIRES_IN }
         );
 
-        // *** EINZIGE ÄNDERUNG: Cookie lokal funktional machen ***
+        // Lokal funktioniert das Cookie über HTTP mit SameSite=Lax; in Produktion erlaubt Secure mit SameSite=None getrennte Domains.
         const isProduction = process.env.NODE_ENV === "production";
 
         res.cookie("token", token, {
             httpOnly: true,
-            secure: isProduction,                 // lokal: false (wichtig!), Render: true
-            sameSite: isProduction ? "none" : "lax", // lokal: lax → Cookie wird akzeptiert
+            secure: isProduction,
+            sameSite: isProduction ? "none" : "lax",
             maxAge: 24 * 60 * 60 * 1000
         });
 
@@ -73,12 +73,33 @@ export const login = async (req, res) => {
 };
 
 
+export const logout = (req, res) => {
+    const isProduction = process.env.NODE_ENV === "production";
+
+    // Dieselben Eigenschaften wie beim Login sorgen dafür, dass der Browser das gesetzte Auth-Cookie zuverlässig entfernt.
+    res.clearCookie("token", {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? "none" : "lax"
+    });
+
+    return res.status(200).json({ message: "Logout erfolgreich" });
+};
+
+
 export const getProfile = async (req, res) => {
-    // re.userId kommt aus der auth-Middleware
+    // Die Auth-Middleware stellt die geprüfte User-ID für die Profilsuche bereit.
     try {
-        const user = await User.findById(req.userId).select("-password")    // gibt alle Felder unter der User-Id zurück, außer das Passwort
+        const user = await User.findById(req.userId).select("-password");
         if (!user) {
-            return res.status(404).json({ message: "User nicht gefunden!" });
+            // Ohne zugehörigen User ist die signierte Session nicht mehr nutzbar.
+            res.clearCookie("token", {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
+            });
+
+            return res.status(401).json({ message: "Nicht autorisiert: Keine gültige Session" });
         }
 
         return res.status(200).json({ message: "Profil geladen", user });

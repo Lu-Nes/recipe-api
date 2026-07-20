@@ -25,59 +25,107 @@ export function getImageUrl(image) {
   return `${API_BASE_URL}/${imagePath.replace(/^\/+/, "")}`
 }
 
-export async function loginUser(data) {
-  // Schickt Login-Daten ans Backend
+function getAuthErrorMessage(responseData, fallbackMessage) {
+  const validationMessages = Array.isArray(responseData?.errors)
+    ? responseData.errors
+        .map(error => typeof error?.msg === "string" ? error.msg.trim() : "")
+        .filter(Boolean)
+    : []
+
+  if (validationMessages.length > 0) {
+    return validationMessages.join(" ")
+  }
+
+  if (typeof responseData?.message === "string" && responseData.message.trim()) {
+    return responseData.message.trim()
+  }
+
+  return fallbackMessage
+}
+
+async function fetchAuth(url, options) {
   try {
-    const response = await fetch(`${API_BASE_URL}/users/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      // WICHTIG: sorgt dafür, dass das HttpOnly-Cookie vom Backend gesetzt/mitgeschickt wird
-      credentials: "include",
-      body: JSON.stringify(data)
-    })
-
-    const responseData = await response.json().catch(() => null)
-
-    // Wenn der Status nicht 2xx ist, Fehler werfen
-    if (!response.ok) {
-      const message = responseData && responseData.message ? responseData.message : "Login fehlgeschlagen!"
-
-      throw new Error(message)
-    }
-
-    // Bei Erfolg, Daten werden an Aufrufer zurück gegeben
-    return responseData
-  } catch (error) {
-    throw error
+    return await fetch(url, options)
+  } catch {
+    throw new Error("Verbindung zum Server konnte nicht hergestellt werden!")
   }
 }
 
-export async function registerUser(data) {
-  // Schickt Registrierungs-Daten ans Backend
-  try {
-    const response = await fetch(`${API_BASE_URL}/users/register`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      credentials: "include",
-      body: JSON.stringify(data)
-    })
+// Das Backend bestimmt den Sessionstatus; deshalb wird das HttpOnly-Cookie bei allen Auth-Anfragen berücksichtigt.
+export async function loginUser(data) {
+  const response = await fetchAuth(`${API_BASE_URL}/users/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    credentials: "include",
+    body: JSON.stringify(data)
+  })
 
-    const responseData = await response.json().catch(() => null)
+  const responseData = await response.json().catch(() => null)
 
-    if (!response.ok) {
-      const message = responseData && responseData.message ? responseData.message : "Registrierung fehlgeschlagen!"
-
-      throw new Error(message)
-    }
-
-    return responseData
-  } catch (error) {
-    throw error
+  if (!response.ok) {
+    throw new Error(getAuthErrorMessage(responseData, "Login fehlgeschlagen!"))
   }
+
+  return responseData
+}
+
+export async function registerUser(data) {
+  const response = await fetchAuth(`${API_BASE_URL}/users/register`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    credentials: "include",
+    body: JSON.stringify(data)
+  })
+
+  const responseData = await response.json().catch(() => null)
+
+  if (!response.ok) {
+    throw new Error(getAuthErrorMessage(responseData, "Registrierung fehlgeschlagen!"))
+  }
+
+  return responseData
+}
+
+export async function getCurrentUser() {
+  const response = await fetchAuth(`${API_BASE_URL}/users/profile`, {
+    method: "GET",
+    credentials: "include"
+  })
+
+  const responseData = await response.json().catch(() => null)
+
+  if (response.status === 401 || response.status === 404) {
+    return null
+  }
+
+  if (!response.ok) {
+    throw new Error(getAuthErrorMessage(responseData, "Aktueller Benutzer konnte nicht geladen werden!"))
+  }
+
+  if (!responseData?.user || typeof responseData.user !== "object" || Array.isArray(responseData.user)) {
+    throw new Error("Benutzerdaten konnten nicht geladen werden!")
+  }
+
+  return responseData.user
+}
+
+export async function logoutUser() {
+  const response = await fetchAuth(`${API_BASE_URL}/users/logout`, {
+    method: "POST",
+    credentials: "include"
+  })
+
+  const responseData = await response.json().catch(() => null)
+
+  if (!response.ok) {
+    throw new Error(getAuthErrorMessage(responseData, "Logout fehlgeschlagen!"))
+  }
+
+  return responseData
 }
 
 export async function fetchRecipes() {

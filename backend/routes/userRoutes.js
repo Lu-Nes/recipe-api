@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { body } from "express-validator";
-import { register, login } from "../controllers/userController.js";
+import { register, login, logout } from "../controllers/userController.js";
 import { getProfile } from "../controllers/userController.js";
 import auth from "../middleware/auth.js";
 
@@ -24,6 +24,10 @@ router
         ],
         login
     );
+
+    // Ohne Auth-Middleware bleibt der Logout auch bei fehlendem oder ungültigem Cookie zuverlässig aufrufbar.
+    router
+        .post("/logout", logout);
 
     // Geschützte Route: Profil
     router

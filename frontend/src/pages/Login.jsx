@@ -1,16 +1,28 @@
 import { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { loginUser } from "../services/api";
 
-// setIsLoggedIn kommt als Prop von App.jsx
-function Login({ setIsLoggedIn }) {
-  const [formData, setFormData] = useState({
-    email: "",
-    password: ""
-  });
+function getErrorMessage(error, fallbackMessage) {
+  return error instanceof Error && error.message
+    ? error.message
+    : fallbackMessage;
+}
 
-  // Meldungen und Ladezustand für UI
+function Login({ setIsLoggedIn }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState(() => ({
+    email:
+      typeof location.state?.email === "string" ? location.state.email : "",
+    password: ""
+  }));
+
   const [errorMessage, setErrorMessage] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+  const [registrationMessage, setRegistrationMessage] = useState(() =>
+    typeof location.state?.message === "string"
+      ? location.state.message
+      : ""
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = event => {
@@ -19,32 +31,32 @@ function Login({ setIsLoggedIn }) {
   };
 
   const handleSubmit = async event => {
-    // Verhindert Neuladen der Seite
     event.preventDefault();
 
-    // Alte Meldungen zurücksetzen
+    if (isLoading) {
+      return;
+    }
+
     setErrorMessage("");
-    setSuccessMessage("");
+    setRegistrationMessage("");
     setIsLoading(true);
 
     try {
-      // API-Aufruf ans Backend mit Formular-Daten
-      const result = await loginUser(formData);
+      await loginUser(formData);
+      const isSessionConfirmed = await setIsLoggedIn(true);
 
-      const message =
-        result && result.message ? result.message : "Login erfolgreich";
-
-      // Einfacher Login-Status im localStorage (für spätere Navigation / UI-Anpassungen)
-      localStorage.setItem("isLoggedIn", "true");
-
-      // Wenn die Funktion aus App.jsx übergeben wurde, Login-Status im React-State aktualisieren
-      if (typeof setIsLoggedIn === "function") {
-        setIsLoggedIn(true);
+      if (!isSessionConfirmed) {
+        setErrorMessage(
+          "Die Anmeldung konnte nicht bestätigt werden. Bitte versuche es erneut."
+        );
+        return;
       }
 
-      setSuccessMessage(message);
+      navigate("/my-recipes");
     } catch (error) {
-      setErrorMessage(error.message);
+      setErrorMessage(
+        getErrorMessage(error, "Login fehlgeschlagen. Bitte versuche es erneut.")
+      );
     } finally {
       setIsLoading(false);
     }
@@ -55,6 +67,12 @@ function Login({ setIsLoggedIn }) {
       <h1>Login</h1>
       <p>Melde dich an, um deine Rezepte zu verwalten.</p>
       <form className="form" onSubmit={event => handleSubmit(event)}>
+        {registrationMessage !== "" && (
+          <p className="form-message form-message--success" role="status">
+            {registrationMessage}
+          </p>
+        )}
+
         <label htmlFor="email">E-Mail</label>
         <input
           id="email"
@@ -82,12 +100,8 @@ function Login({ setIsLoggedIn }) {
         </button>
 
         {errorMessage !== "" && (
-          <p className="form-message form-message--error">{errorMessage}</p>
-        )}
-
-        {successMessage !== "" && (
-          <p className="form-message form-message--success">
-            {successMessage}
+          <p className="form-message form-message--error" role="alert">
+            {errorMessage}
           </p>
         )}
       </form>

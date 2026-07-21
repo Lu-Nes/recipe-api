@@ -54,6 +54,13 @@ function Header({ isLoggedIn, setIsLoggedIn }) {
       closeMenu();
       navigate('/');
     } catch (error) {
+      if (error.status === 401) {
+        await setIsLoggedIn(false);
+        closeMenu();
+        navigate('/');
+        return;
+      }
+
       setLogoutError(
         getErrorMessage(error, 'Logout fehlgeschlagen. Bitte versuche es erneut.')
       );

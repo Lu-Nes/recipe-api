@@ -8,6 +8,26 @@ function getErrorMessage(error, fallbackMessage) {
     : fallbackMessage;
 }
 
+function getSafeReturnTarget(target) {
+  const isAuthRoute =
+    target?.pathname === "/login" || target?.pathname === "/register";
+
+  if (
+    typeof target?.pathname !== "string" ||
+    !target.pathname.startsWith("/") ||
+    target.pathname.startsWith("//") ||
+    isAuthRoute
+  ) {
+    return "/my-recipes";
+  }
+
+  return {
+    pathname: target.pathname,
+    search: typeof target.search === "string" ? target.search : "",
+    hash: typeof target.hash === "string" ? target.hash : ""
+  };
+}
+
 function Login({ setIsLoggedIn }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -52,7 +72,7 @@ function Login({ setIsLoggedIn }) {
         return;
       }
 
-      navigate("/my-recipes");
+      navigate(getSafeReturnTarget(location.state?.from), { replace: true });
     } catch (error) {
       setErrorMessage(
         getErrorMessage(error, "Login fehlgeschlagen. Bitte versuche es erneut.")

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { fetchRecipeById, updateRecipe } from '../services/api';
 
-function EditRecipe() {
+function EditRecipe({ onSessionExpired }) {
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -86,6 +86,11 @@ function EditRecipe() {
       // Nach dem Speichern zurück zur Detailseite
       navigate(`/recipes/${id}`);
     } catch (error) {
+      if (error.status === 401) {
+        onSessionExpired();
+        return;
+      }
+
       console.error('Fehler beim Aktualisieren des Rezepts:', error);
       setError(error.message || 'Rezept konnte nicht aktualisiert werden.');
     } finally {

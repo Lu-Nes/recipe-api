@@ -3,7 +3,7 @@ import { Link } from "react-router-dom"
 import RecipeCard from "../components/RecipeCard"
 import { fetchMyRecipes } from "../services/api"
 
-function MyRecipes() {
+function MyRecipes({ onSessionExpired }) {
   // Zustand für eigene Rezepte, Ladeanzeige und Fehler
   const [recipes, setRecipes] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -35,6 +35,11 @@ function MyRecipes() {
 
         setRecipes(list)
       } catch (err) {
+        if (err.status === 401) {
+          onSessionExpired()
+          return
+        }
+
         setError(err.message)
         setRecipes([])
       } finally {
@@ -43,7 +48,7 @@ function MyRecipes() {
     }
 
     loadMyRecipes()
-  }, [])
+  }, [onSessionExpired])
 
   const normalizedRecipes = recipes.map(recipe => ({
     id: recipe._id || recipe.id,

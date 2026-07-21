@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createRecipe } from '../services/api';
 
-function CreateRecipe() {
+function CreateRecipe({ onSessionExpired }) {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -53,6 +53,11 @@ function CreateRecipe() {
       // Nach dem Speichern zurück zur Übersicht
       navigate('/recipes');
     } catch (error) {
+      if (error.status === 401) {
+        onSessionExpired();
+        return;
+      }
+
       console.error('Fehler beim Erstellen des Rezepts:', error);
       setError(error.message || 'Rezept konnte nicht erstellt werden.');
     } finally {

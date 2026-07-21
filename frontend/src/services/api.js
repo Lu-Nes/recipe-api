@@ -43,6 +43,12 @@ function getAuthErrorMessage(responseData, fallbackMessage) {
   return fallbackMessage
 }
 
+function createApiError(message, status) {
+  const error = new Error(message)
+  error.status = status
+  return error
+}
+
 async function fetchAuth(url, options) {
   try {
     return await fetch(url, options)
@@ -122,7 +128,10 @@ export async function logoutUser() {
   const responseData = await response.json().catch(() => null)
 
   if (!response.ok) {
-    throw new Error(getAuthErrorMessage(responseData, "Logout fehlgeschlagen!"))
+    throw createApiError(
+      getAuthErrorMessage(responseData, "Logout fehlgeschlagen!"),
+      response.status
+    )
   }
 
   return responseData
@@ -188,7 +197,7 @@ export async function fetchMyRecipes() {
         : "Fehler beim Laden deiner Rezepte"
       const message = responseData && responseData.message ? responseData.message : fallbackMessage
 
-      throw new Error(message)
+      throw createApiError(message, response.status)
     }
 
     return responseData
@@ -214,7 +223,7 @@ export async function createRecipe(data) {
     if (!response.ok) {
       const message = responseData && responseData.message ? responseData.message : "Rezept konnte nicht erstellt werden!"
 
-      throw new Error(message)
+      throw createApiError(message, response.status)
     }
 
     return responseData
@@ -240,7 +249,7 @@ export async function updateRecipe(id, data) {
     if (!response.ok) {
       const message = responseData && responseData.message ? responseData.message : "Rezept konnte nicht aktualisiert werden!"
 
-      throw new Error(message)
+      throw createApiError(message, response.status)
     }
 
     return responseData
@@ -262,7 +271,7 @@ export async function deleteRecipe(id) {
     if (!response.ok) {
       const message = responseData && responseData.message ? responseData.message : "Rezept konnte nicht gelöscht werden!"
 
-      throw new Error(message)
+      throw createApiError(message, response.status)
     }
 
     return responseData
@@ -289,7 +298,7 @@ export async function uploadRecipeImage(id, file) {
     if (!response.ok) {
       const message = responseData && responseData.message ? responseData.message : "Rezeptbild konnte nicht hochgeladen werden!"
 
-      throw new Error(message)
+      throw createApiError(message, response.status)
     }
 
     return responseData

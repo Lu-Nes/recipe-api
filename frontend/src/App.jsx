@@ -1,5 +1,11 @@
-import { useState, useEffect } from "react";
-import { Routes, Route } from "react-router-dom";
+import { useCallback, useState, useEffect } from "react";
+import {
+  Navigate,
+  Routes,
+  Route,
+  useLocation,
+  useNavigate
+} from "react-router-dom";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Home from "./pages/Home";
@@ -19,15 +25,64 @@ function getSessionErrorMessage(error) {
     : "Der Anmeldestatus konnte nicht geprüft werden.";
 }
 
-function ProtectedRoute({ children, isLoggedIn, setIsLoggedIn }) {
+function getSafeReturnTarget(target) {
+  const isAuthRoute =
+    target?.pathname === "/login" || target?.pathname === "/register";
+
+  if (
+    typeof target?.pathname !== "string" ||
+    !target.pathname.startsWith("/") ||
+    target.pathname.startsWith("//") ||
+    isAuthRoute
+  ) {
+    return "/my-recipes";
+  }
+
+  return {
+    pathname: target.pathname,
+    search: typeof target.search === "string" ? target.search : "",
+    hash: typeof target.hash === "string" ? target.hash : ""
+  };
+}
+
+function ProtectedRoute({ children, isLoggedIn }) {
+  const location = useLocation();
+
   if (!isLoggedIn) {
-    return <Login setIsLoggedIn={setIsLoggedIn} />;
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{ from: getSafeReturnTarget(location) }}
+      />
+    );
+  }
+
+  return children;
+}
+
+function GuestRoute({ children, isLoggedIn }) {
+  const location = useLocation();
+
+  if (isLoggedIn) {
+    return (
+      <Navigate
+        to={
+          location.pathname === "/login"
+            ? getSafeReturnTarget(location.state?.from)
+            : "/my-recipes"
+        }
+        replace
+      />
+    );
   }
 
   return children;
 }
 
 function App() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
@@ -79,6 +134,19 @@ function App() {
     }
   };
 
+  const handleSessionExpired = useCallback(() => {
+    setCurrentUser(null);
+
+    if (location.pathname === "/login" || location.pathname === "/register") {
+      return;
+    }
+
+    navigate("/login", {
+      replace: true,
+      state: { from: getSafeReturnTarget(location) }
+    });
+  }, [location, navigate]);
+
   if (isAuthLoading) {
     return (
       <main className="content" aria-busy="true">
@@ -106,46 +174,50 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route
             path="/login"
-            element={<Login setIsLoggedIn={updateAuthStatus} />}
+            element={
+              <GuestRoute isLoggedIn={isLoggedIn}>
+                <Login setIsLoggedIn={updateAuthStatus} />
+              </GuestRoute>
+            }
           />
           <Route
             path="/register"
-            element={<Register setIsLoggedIn={updateAuthStatus} />}
+            element={
+              <GuestRoute isLoggedIn={isLoggedIn}>
+                <Register setIsLoggedIn={updateAuthStatus} />
+              </GuestRoute>
+            }
           />
           <Route path="/recipes" element={<Recipes />} />
-          <Route path="/recipes/:id" element={<RecipeDetails />} />
+          <Route
+            path="/recipes/:id"
+            element={
+              <RecipeDetails onSessionExpired={handleSessionExpired} />
+            }
+          />
 
           {/* Geschützte Bereiche */}
           <Route
             path="/my-recipes"
             element={
-              <ProtectedRoute
-                isLoggedIn={isLoggedIn}
-                setIsLoggedIn={updateAuthStatus}
-              >
-                <MyRecipes />
+              <ProtectedRoute isLoggedIn={isLoggedIn}>
+                <MyRecipes onSessionExpired={handleSessionExpired} />
               </ProtectedRoute>
             }
           />
           <Route
             path="/create"
             element={
-              <ProtectedRoute
-                isLoggedIn={isLoggedIn}
-                setIsLoggedIn={updateAuthStatus}
-              >
-                <CreateRecipe />
+              <ProtectedRoute isLoggedIn={isLoggedIn}>
+                <CreateRecipe onSessionExpired={handleSessionExpired} />
               </ProtectedRoute>
             }
           />
           <Route
             path="/edit/:id"
             element={
-              <ProtectedRoute
-                isLoggedIn={isLoggedIn}
-                setIsLoggedIn={updateAuthStatus}
-              >
-                <EditRecipe />
+              <ProtectedRoute isLoggedIn={isLoggedIn}>
+                <EditRecipe onSessionExpired={handleSessionExpired} />
               </ProtectedRoute>
             }
           />

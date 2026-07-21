@@ -2,7 +2,7 @@ import { useParams, Link, useNavigate } from "react-router-dom"
 import { useEffect, useState } from "react"
 import { fetchRecipeById, deleteRecipe, uploadRecipeImage, getImageUrl } from "../services/api"
 
-function RecipeDetails() {
+function RecipeDetails({ onSessionExpired }) {
   const { id } = useParams()
   const navigate = useNavigate()
 
@@ -51,6 +51,11 @@ function RecipeDetails() {
       await deleteRecipe(id)
       navigate("/recipes")
     } catch (error) {
+      if (error.status === 401) {
+        onSessionExpired()
+        return
+      }
+
       console.error("Fehler beim Löschen des Rezepts:", error)
       setError(error.message || "Rezept konnte nicht gelöscht werden.")
       setIsDeleting(false)
@@ -73,6 +78,11 @@ function RecipeDetails() {
 
       setImageFile(null)
     } catch (error) {
+      if (error.status === 401) {
+        onSessionExpired()
+        return
+      }
+
       console.error("Fehler beim Hochladen des Bildes:", error)
       setUploadError(error.message || "Bild konnte nicht hochgeladen werden.")
     } finally {

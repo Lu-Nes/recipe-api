@@ -170,9 +170,10 @@ export async function fetchRecipeById(id) {
     const responseData = await response.json().catch(() => null)
 
     if (!response.ok) {
-      const message = responseData && responseData.message ? responseData.message : "Rezept konnte nicht geladen werden!"
-
-      throw new Error(message)
+      throw createApiError(
+        getAuthErrorMessage(responseData, "Rezept konnte nicht geladen werden!"),
+        response.status
+      )
     }
 
     return responseData
@@ -247,9 +248,10 @@ export async function updateRecipe(id, data) {
     const responseData = await response.json().catch(() => null)
 
     if (!response.ok) {
-      const message = responseData && responseData.message ? responseData.message : "Rezept konnte nicht aktualisiert werden!"
-
-      throw createApiError(message, response.status)
+      throw createApiError(
+        getAuthErrorMessage(responseData, "Rezept konnte nicht aktualisiert werden!"),
+        response.status
+      )
     }
 
     return responseData
@@ -269,9 +271,10 @@ export async function deleteRecipe(id) {
     const responseData = await response.json().catch(() => null)
 
     if (!response.ok) {
-      const message = responseData && responseData.message ? responseData.message : "Rezept konnte nicht gelöscht werden!"
-
-      throw createApiError(message, response.status)
+      throw createApiError(
+        getAuthErrorMessage(responseData, "Rezept konnte nicht gelöscht werden!"),
+        response.status
+      )
     }
 
     return responseData
@@ -296,9 +299,10 @@ export async function uploadRecipeImage(id, file) {
     const responseData = await response.json().catch(() => null)
 
     if (!response.ok) {
-      const message = responseData && responseData.message ? responseData.message : "Rezeptbild konnte nicht hochgeladen werden!"
-
-      throw createApiError(message, response.status)
+      throw createApiError(
+        getAuthErrorMessage(responseData, "Rezeptbild konnte nicht hochgeladen werden!"),
+        response.status
+      )
     }
 
     return responseData

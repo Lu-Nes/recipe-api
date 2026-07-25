@@ -3,6 +3,56 @@ import Recipe from "../models/Recipe.js";
 // import User from "../models/User.js";
 
 
+const getComparableId = value => {
+    if (!value) {
+        return null;
+    }
+
+    if (typeof value === "object") {
+        if (value._id) {
+            return String(value._id);
+        }
+
+        if (typeof value.toHexString === "function") {
+            return value.toHexString();
+        }
+
+        if (value.id) {
+            return String(value.id);
+        }
+
+        return null;
+    }
+
+    return String(value);
+};
+
+export const requireRecipeOwner = forbiddenMessage => async (req, res, next) => {
+    try {
+        // Rezept aus der DB holen
+        const recipe = await Recipe.findById(req.params.id);
+
+        if (!recipe) {
+            return res.status(404).json({ message: "Rezept wurde nicht gefunden!" });
+        }
+
+        const authorId = getComparableId(recipe.author);
+        const userId = getComparableId(req.userId);
+
+        // Autoren-Prüfung: Nur der Ersteller darf geschützte Rezeptaktionen ausführen
+        if (!authorId || !userId || authorId !== userId) {
+            return res.status(403).json({ message: forbiddenMessage });
+        }
+
+        req.recipe = recipe;
+        next();
+    } catch (error) {
+        console.error("Fehler bei der Rezeptautorisierung:", error);
+        return res.status(500).json({ message: "Interner Serverfehler!" });
+    }
+};
+
+
 // POST /recipes (auth) - Rezept anlegen
 export const createRecipe = async (req, res) => {
     const errors = validationResult(req);
@@ -92,44 +142,41 @@ export const getRecipeById = async (req, res) => {
 
 
 export const updateRecipe = async (req, res) => {
-    const { id } = req.params;
-
     try {
-        // Rezept aus der DB holen
-        const recipe = await Recipe.findById(id);
+        const recipe = req.recipe;
+        const updatableFields = [
+            "title",
+            "description",
+            "prepTime",
+            "cookTime",
+            "servings",
+            "difficulty",
+            "ingredients",
+            "steps"
+        ];
 
-        if (!recipe) {
-            return res.status(404).json({ message: "Rezept wurde nicht gefunden!" });
+        // Nur ausdrücklich übermittelte fachliche Felder werden aktualisiert.
+        updatableFields.forEach(field => {
+            if (Object.prototype.hasOwnProperty.call(req.body, field)) {
+                recipe[field] = req.body[field];
+            }
+        });
+
+        const hasRequiredContent =
+            typeof recipe.title === "string" &&
+            recipe.title.trim() !== "" &&
+            Array.isArray(recipe.ingredients) &&
+            recipe.ingredients.length > 0 &&
+            recipe.ingredients.every(item => typeof item === "string" && item.trim() !== "") &&
+            Array.isArray(recipe.steps) &&
+            recipe.steps.length > 0 &&
+            recipe.steps.every(item => typeof item === "string" && item.trim() !== "");
+
+        if (!hasRequiredContent) {
+            return res.status(400).json({
+                message: "Titel, Zutaten und Zubereitungsschritte dürfen nicht leer sein"
+            });
         }
-
-        // Autoren-Prüfung: nur der Ersteller darf bearbeiten
-        if (recipe.author.toString() !== req.userId.toString()) {
-            return res.status(403).json({ message: "Du darfst dieses Rezept nicht bearbeiten!" });
-        }
-
-        // Felder aus dem Body holen
-        const {
-            title,
-            description,
-            image,
-            prepTime,
-            cookTime,
-            servings,
-            difficulty,
-            ingredients,
-            steps
-        } = req.body;
-
-        // Felder aktualisieren (einfache Variante: wenn Wert vorhanden, dann überschreiben)
-        if (title) recipe.title = title;
-        if (description) recipe.description = description;
-        if (image) recipe.image = image;
-        if (prepTime) recipe.prepTime = prepTime;
-        if (cookTime) recipe.cookTime = cookTime;
-        if (servings) recipe.servings = servings;
-        if (difficulty) recipe.difficulty = difficulty;
-        if (ingredients) recipe.ingredients = ingredients;
-        if (steps) recipe.steps = steps;
 
         // Änderungen speichern
         const updatedRecipe = await recipe.save();
@@ -139,6 +186,10 @@ export const updateRecipe = async (req, res) => {
             recipe: updatedRecipe
         });
     } catch (error) {
+        if (error.name === "ValidationError" || error.name === "CastError") {
+            return res.status(400).json({ message: "Ungültige Rezeptdaten" });
+        }
+
         console.error("Fehler beim Aktualisieren des Rezepts:", error);
         res.status(500).json({ message: "Interner serverfehler!" });
     }
@@ -146,19 +197,8 @@ export const updateRecipe = async (req, res) => {
 
 
 export const deleteRecipe = async (req, res) => {
-    const { id } = req.params;
-
     try {
-        const recipe = await Recipe.findById(id);
-
-        if (!recipe) {
-            return res.status(404).json({ message: "Rezept wurde nicht gefunden!" });
-        }
-
-        // Autoren-Prüfung: Nur der Ersteller darf löschen
-        if (recipe.author.toString() !== req.userId.toString()) {
-            return res.status(403).json({ message: "Du hast keine Berechtigung das Rezept zu löschen!" });
-        }
+        const recipe = req.recipe;
 
         await recipe.deleteOne();
 
@@ -195,19 +235,8 @@ export const getMyRecipes = async (req, res) => {
 
 // POST /recipes/:id/image (auth) - Bild zu einem rezept hochladen
 export const uploadRecipeImage = async (req, res) => {
-    const { id } = req.params;
-
     try {
-        const recipe = await Recipe.findById(id);
-
-        if (!recipe) {
-            return res.status(404).json({ message: "Rezept wurde nicht gefunden!" });
-        }
-
-        // Autoren-Prüfung: Nur Ersteller darf das Bild ändern
-        if (recipe.author.toString() !== req.userId.toString()) {
-            return res.status(403).json({ message: "Du hast keine Berechtigung das Bild dieses Rezepts zu ändern!" });
-        }
+        const recipe = req.recipe;
 
         if (!req.file) {
             return res.status(400).json({ message: "Kein Bild hochgeladen!" });

@@ -2,7 +2,29 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { fetchRecipeById, updateRecipe } from '../services/api';
 
-function EditRecipe({ onSessionExpired }) {
+function getEntityId(value) {
+  if (!value) {
+    return null;
+  }
+
+  const id = typeof value === 'object' ? value._id ?? value.id : value;
+
+  if (id === undefined || id === null) {
+    return null;
+  }
+
+  const normalizedId = String(id).trim();
+  return normalizedId || null;
+}
+
+function isRecipeOwner(recipe, currentUser) {
+  const authorId = getEntityId(recipe?.author);
+  const userId = getEntityId(currentUser);
+
+  return Boolean(authorId && userId && authorId === userId);
+}
+
+function EditRecipe({ currentUser, onSessionExpired }) {
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -16,30 +38,44 @@ function EditRecipe({ onSessionExpired }) {
   const [isLoading, setIsLoading] = useState(true);   // Rezept wird geladen
   const [isSaving, setIsSaving] = useState(false);    // Änderungen werden gespeichert
   const [error, setError] = useState(null);
+  const [recipe, setRecipe] = useState(null);
 
   useEffect(() => {
     async function loadRecipe() {
       try {
         setIsLoading(true);
         setError(null);
+        setRecipe(null);
 
         const data = await fetchRecipeById(id);
         console.log('Rezept zum Bearbeiten (Rohdaten):', data);
 
-        const recipe = data && data.recipe ? data.recipe : data;
+        const loadedRecipe = data && data.recipe ? data.recipe : data;
+
+        if (!isRecipeOwner(loadedRecipe, currentUser)) {
+          setError('Du darfst dieses Rezept nicht bearbeiten.');
+          return;
+        }
+
+        setRecipe(loadedRecipe);
 
         setFormData({
-          title: recipe.title || '',
-          description: recipe.description || '',
+          title: loadedRecipe.title || '',
+          description: loadedRecipe.description || '',
           // Arrays in Textareas umwandeln (eine Zeile pro Eintrag)
-          ingredients: Array.isArray(recipe.ingredients)
-            ? recipe.ingredients.join('\n')
+          ingredients: Array.isArray(loadedRecipe.ingredients)
+            ? loadedRecipe.ingredients.join('\n')
             : '',
-          steps: Array.isArray(recipe.steps)
-            ? recipe.steps.join('\n')
+          steps: Array.isArray(loadedRecipe.steps)
+            ? loadedRecipe.steps.join('\n')
             : ''
         });
       } catch (error) {
+        if (error.status === 401) {
+          onSessionExpired();
+          return;
+        }
+
         console.error('Fehler beim Laden des Rezepts zum Bearbeiten:', error);
         setError(error.message || 'Rezept konnte nicht geladen werden.');
       } finally {
@@ -48,7 +84,7 @@ function EditRecipe({ onSessionExpired }) {
     }
 
     loadRecipe();
-  }, [id]);
+  }, [currentUser, id, onSessionExpired]);
 
   const handleChange = event => {
     const { name, value } = event.target;
@@ -91,6 +127,10 @@ function EditRecipe({ onSessionExpired }) {
         return;
       }
 
+      if (error.status === 403 || error.status === 404) {
+        setRecipe(null);
+      }
+
       console.error('Fehler beim Aktualisieren des Rezepts:', error);
       setError(error.message || 'Rezept konnte nicht aktualisiert werden.');
     } finally {
@@ -103,6 +143,24 @@ function EditRecipe({ onSessionExpired }) {
       <section className="page">
         <h1>Rezept bearbeiten</h1>
         <p className="info-text">Rezept wird geladen...</p>
+      </section>
+    );
+  }
+
+  if (error && !recipe) {
+    return (
+      <section className="page">
+        <h1>Rezept bearbeiten</h1>
+        <p className="error-text">Fehler: {error}</p>
+      </section>
+    );
+  }
+
+  if (!recipe) {
+    return (
+      <section className="page">
+        <h1>Rezept bearbeiten</h1>
+        <p className="error-text">Rezept konnte nicht geladen werden.</p>
       </section>
     );
   }
@@ -130,7 +188,7 @@ function EditRecipe({ onSessionExpired }) {
           required
         />
 
-        <label htmlFor="description">Beschreibung</label>
+        <label htmlFor="description">Beschreibung (optional)</label>
         <textarea
           id="description"
           name="description"
@@ -148,6 +206,7 @@ function EditRecipe({ onSessionExpired }) {
           value={formData.ingredients}
           onChange={handleChange}
           rows="4"
+          required
         />
 
         <label htmlFor="steps">Zubereitungsschritte</label>
@@ -158,6 +217,7 @@ function EditRecipe({ onSessionExpired }) {
           value={formData.steps}
           onChange={handleChange}
           rows="4"
+          required
         />
 
         <button type="submit" disabled={isSaving}>

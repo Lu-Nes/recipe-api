@@ -6,6 +6,8 @@ function RecipeCard({ recipe }) {
   }
 
   const imageUrl = getImageUrl(recipe.image)
+  const hasDescription =
+    typeof recipe.description === "string" && recipe.description.trim() !== ""
 
   return (
     <article className="card">
@@ -21,7 +23,7 @@ function RecipeCard({ recipe }) {
       <p className="card__meta">
         Kategorie: {recipe.category ?? "Unbekannt"}
       </p>
-      <p>{recipe.description}</p>
+      {hasDescription && <p>{recipe.description}</p>}
       {recipe.author && (
         <p className="card__author">
           Autor: {recipe.author}

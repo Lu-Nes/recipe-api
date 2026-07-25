@@ -192,7 +192,10 @@ function App() {
           <Route
             path="/recipes/:id"
             element={
-              <RecipeDetails onSessionExpired={handleSessionExpired} />
+              <RecipeDetails
+                currentUser={currentUser}
+                onSessionExpired={handleSessionExpired}
+              />
             }
           />
 
@@ -217,7 +220,10 @@ function App() {
             path="/edit/:id"
             element={
               <ProtectedRoute isLoggedIn={isLoggedIn}>
-                <EditRecipe onSessionExpired={handleSessionExpired} />
+                <EditRecipe
+                  currentUser={currentUser}
+                  onSessionExpired={handleSessionExpired}
+                />
               </ProtectedRoute>
             }
           />

@@ -88,7 +88,7 @@ function CreateRecipe({ onSessionExpired }) {
           required
         />
 
-        <label htmlFor="description">Beschreibung</label>
+        <label htmlFor="description">Beschreibung (optional)</label>
         <textarea
           id="description"
           name="description"
@@ -106,6 +106,7 @@ function CreateRecipe({ onSessionExpired }) {
           value={formData.ingredients}
           onChange={handleChange}
           rows="4"
+          required
         />
 
         <label htmlFor="steps">Zubereitungsschritte</label>
@@ -116,6 +117,7 @@ function CreateRecipe({ onSessionExpired }) {
           value={formData.steps}
           onChange={handleChange}
           rows="4"
+          required
         />
 
         <button type="submit" disabled={isLoading}>

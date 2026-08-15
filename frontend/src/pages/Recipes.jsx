@@ -1,12 +1,33 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import RecipeCard from "../components/RecipeCard";
 import { fetchRecipes } from "../services/api";
 
 function Recipes() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [recipes, setRecipes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [successMessage] = useState(() =>
+    location.state?.recipeDeleted ? "Rezept erfolgreich gelöscht." : null
+  );
+
+  // Der Router-State wird nach dem Übernehmen entfernt, damit die Erfolgsmeldung nach einem Reload nicht erneut erscheint.
+  useEffect(() => {
+    if (!location.state?.recipeDeleted) {
+      return;
+    }
+
+    navigate(
+      {
+        pathname: location.pathname,
+        search: location.search,
+        hash: location.hash
+      },
+      { replace: true, state: null }
+    );
+  }, [location.hash, location.pathname, location.search, location.state, navigate]);
 
   // Rezepte aus Backend laden
   useEffect(() => {
@@ -53,6 +74,12 @@ function Recipes() {
         <h1 id="recipes-title">Alle Rezepte</h1>
         <p>Entdecke neue Ideen und lass dich inspirieren.</p>
       </header>
+
+      {successMessage && (
+        <p className="recipe-overview__success" role="status">
+          {successMessage}
+        </p>
+      )}
 
       {isLoading && (
         <div className="recipe-overview__state" role="status">

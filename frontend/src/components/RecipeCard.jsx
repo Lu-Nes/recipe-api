@@ -1,36 +1,49 @@
-import { getImageUrl } from "../services/api"
+import { useState } from "react";
+import { getImageUrl } from "../services/api";
 
 function RecipeCard({ recipe }) {
+  const [failedImageUrl, setFailedImageUrl] = useState(null);
+
   if (!recipe) {
-    return null
+    return null;
   }
 
-  const imageUrl = getImageUrl(recipe.image)
+  const imageUrl = getImageUrl(recipe.image);
+  const hasImageError = imageUrl === failedImageUrl;
   const hasDescription =
-    typeof recipe.description === "string" && recipe.description.trim() !== ""
+    typeof recipe.description === "string" && recipe.description.trim() !== "";
+  const title = recipe.title || "Unbenanntes Rezept";
+  const category = recipe.category || "Ohne Kategorie";
+  const author = recipe.author || "Unbekannt";
 
   return (
-    <article className="card">
-      {imageUrl && (
-        <img
-          src={imageUrl}
-          alt={`Bild von ${recipe.title}`}
-          className="card__image"
-        />
-      )}
+    <article className="recipe-card">
+      <div className="recipe-card__media">
+        <div className="recipe-card__placeholder" aria-hidden="true">
+          <span>Kein Bild verfügbar</span>
+        </div>
+        {imageUrl && !hasImageError && (
+          <img
+            src={imageUrl}
+            alt={`Bild von ${title}`}
+            className="recipe-card__image"
+            onError={() => setFailedImageUrl(imageUrl)}
+          />
+        )}
+      </div>
 
-      <h3>{recipe.title}</h3>
-      <p className="card__meta">
-        Kategorie: {recipe.category ?? "Unbekannt"}
-      </p>
-      {hasDescription && <p>{recipe.description}</p>}
-      {recipe.author && (
-        <p className="card__author">
-          Autor: {recipe.author}
+      <div className="recipe-card__content">
+        <p className="recipe-card__category">{category}</p>
+        <h2 className="recipe-card__title">{title}</h2>
+        {hasDescription && (
+          <p className="recipe-card__description">{recipe.description.trim()}</p>
+        )}
+        <p className="recipe-card__author">
+          <span>Von</span> {author}
         </p>
-      )}
+      </div>
     </article>
-  )
+  );
 }
 
-export default RecipeCard
+export default RecipeCard;

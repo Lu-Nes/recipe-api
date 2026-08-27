@@ -1,9 +1,15 @@
-import { useParams, Link, useNavigate } from "react-router-dom";
+import {
+  useParams,
+  Link,
+  useLocation,
+  useNavigate
+} from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import {
   fetchRecipeById,
   deleteRecipe,
   uploadRecipeImage,
+  deleteRecipeImage,
   getImageUrl
 } from "../services/api";
 
@@ -31,6 +37,7 @@ function isRecipeOwner(recipe, currentUser) {
 
 function RecipeDetails({ currentUser, onSessionExpired }) {
   const { id } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const deleteDialogRef = useRef(null);
   const imageInputRef = useRef(null);
@@ -45,8 +52,49 @@ function RecipeDetails({ currentUser, onSessionExpired }) {
 
   const [imageFile, setImageFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isRemovingImage, setIsRemovingImage] = useState(false);
   const [uploadError, setUploadError] = useState(null);
   const [uploadSuccess, setUploadSuccess] = useState(null);
+  const [creationImageWarning] = useState(() =>
+    location.state?.imageUploadFailed
+      ? "Das Rezept wurde gespeichert, aber das Bild konnte nicht hochgeladen werden. Du kannst den Upload unten erneut versuchen."
+      : null
+  );
+  const [recipeSuccessMessage] = useState(() => {
+    if (location.state?.imageUploadFailed) {
+      return null;
+    }
+
+    if (location.state?.recipeCreated) {
+      return "Rezept erfolgreich erstellt.";
+    }
+
+    if (location.state?.recipeUpdated) {
+      return "Änderungen erfolgreich gespeichert.";
+    }
+
+    return null;
+  });
+
+  // Der Router-State wird nach dem Übernehmen entfernt, damit die Rückmeldung nach einem Reload nicht erneut erscheint.
+  useEffect(() => {
+    if (
+      !location.state?.imageUploadFailed &&
+      !location.state?.recipeCreated &&
+      !location.state?.recipeUpdated
+    ) {
+      return;
+    }
+
+    navigate(
+      {
+        pathname: location.pathname,
+        search: location.search,
+        hash: location.hash
+      },
+      { replace: true, state: null }
+    );
+  }, [location.hash, location.pathname, location.search, location.state, navigate]);
 
   useEffect(() => {
     async function loadRecipe() {
@@ -119,7 +167,7 @@ function RecipeDetails({ currentUser, onSessionExpired }) {
   const handleImageUpload = async event => {
     event.preventDefault();
 
-    if (!recipe || !imageFile) {
+    if (!recipe || !imageFile || isRemovingImage) {
       return;
     }
 
@@ -156,7 +204,44 @@ function RecipeDetails({ currentUser, onSessionExpired }) {
     }
   };
 
+  const handleImageRemove = async () => {
+    if (!recipe?.image || isUploading) {
+      return;
+    }
+
+    try {
+      setIsRemovingImage(true);
+      setUploadError(null);
+      setUploadSuccess(null);
+
+      const data = await deleteRecipeImage(recipe._id || recipe.id);
+
+      if (data && data.recipe) {
+        // Da die Antwort den Autor nicht immer populiert zurückliefert, bleibt der bereits geladene Autor für die Eigentümerprüfung erhalten.
+        setRecipe(currentRecipe => ({
+          ...data.recipe,
+          author: currentRecipe?.author ?? data.recipe.author
+        }));
+      }
+
+      setFailedImageUrl(null);
+      setUploadSuccess("Rezeptbild wurde entfernt.");
+    } catch (error) {
+      if (error.status === 401) {
+        onSessionExpired();
+        return;
+      }
+
+      console.error("Fehler beim Entfernen des Bildes:", error);
+      setUploadError(error.message || "Bild konnte nicht entfernt werden.");
+    } finally {
+      setIsRemovingImage(false);
+    }
+  };
+
   const imageUrl = getImageUrl(recipe?.image);
+  const hasRecipeImage = Boolean(imageUrl);
+  const isImageBusy = isUploading || isRemovingImage;
   const showRecipeImage = Boolean(
     imageUrl && failedImageUrl !== imageUrl
   );
@@ -175,6 +260,18 @@ function RecipeDetails({ currentUser, onSessionExpired }) {
         <span aria-hidden="true">←</span>
         Zur Rezeptübersicht
       </Link>
+
+      {creationImageWarning && (
+        <p className="recipe-details__upload-warning" role="status">
+          {creationImageWarning}
+        </p>
+      )}
+
+      {recipeSuccessMessage && (
+        <p className="recipe-details__success-message" role="status">
+          {recipeSuccessMessage}
+        </p>
+      )}
 
       {isLoading && (
         <div className="recipe-details__state" role="status" aria-busy="true">
@@ -299,6 +396,7 @@ function RecipeDetails({ currentUser, onSessionExpired }) {
                     type="file"
                     accept="image/*"
                     onChange={handleImageFileChange}
+                    disabled={isImageBusy}
                   />
                   <label
                     className="recipe-management__file-label"
@@ -313,13 +411,28 @@ function RecipeDetails({ currentUser, onSessionExpired }) {
                     </p>
                   )}
 
-                  <button
-                    type="submit"
-                    className="button recipe-management__upload-button"
-                    disabled={!imageFile || isUploading}
-                  >
-                    {isUploading ? "Bild wird hochgeladen..." : "Bild hochladen"}
-                  </button>
+                  <div className="recipe-management__image-buttons">
+                    <button
+                      type="submit"
+                      className="button recipe-management__upload-button"
+                      disabled={!imageFile || isImageBusy}
+                    >
+                      {isUploading ? "Bild wird hochgeladen..." : "Bild hochladen"}
+                    </button>
+
+                    {hasRecipeImage && (
+                      <button
+                        type="button"
+                        className="button recipe-management__remove-image-button"
+                        onClick={handleImageRemove}
+                        disabled={isImageBusy}
+                      >
+                        {isRemovingImage
+                          ? "Bild wird entfernt..."
+                          : "Bild entfernen"}
+                      </button>
+                    )}
+                  </div>
 
                   {uploadError && (
                     <p

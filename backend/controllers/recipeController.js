@@ -1,6 +1,11 @@
 import { validationResult } from "express-validator";
+import { unlink } from "node:fs/promises";
+import path from "node:path";
 import Recipe from "../models/Recipe.js";
 // import User from "../models/User.js";
+
+
+const uploadsDirectory = path.resolve("uploads");
 
 
 const getComparableId = value => {
@@ -256,4 +261,56 @@ export const uploadRecipeImage = async (req, res) => {
         console.error("Fehler beim Hochladen des Rezeptbildes:", error);
         res.status(500).json({ message: "Interner Serverfehler!" });
     }
+};
+
+
+// DELETE /recipes/:id/image (auth) - Bild eines Rezepts entfernen
+export const deleteRecipeImage = async (req, res) => {
+  try {
+    const recipe = req.recipe;
+    const storedImagePath =
+      typeof recipe.image === "string" ? recipe.image.trim() : "";
+
+    if (!storedImagePath) {
+      return res.status(400).json({ message: "Dieses Rezept hat kein Bild." });
+    }
+
+    const normalizedImagePath = storedImagePath.replace(/\\/g, "/");
+    const imageFileName = path.posix.basename(normalizedImagePath);
+    const expectedImagePath = `/uploads/${imageFileName}`;
+
+    if (
+      !imageFileName ||
+      imageFileName === "." ||
+      imageFileName === ".." ||
+      normalizedImagePath !== expectedImagePath
+    ) {
+      return res.status(400).json({ message: "Der gespeicherte Bildpfad ist ungültig." });
+    }
+
+    const imageFilePath = path.resolve(uploadsDirectory, imageFileName);
+
+    if (path.dirname(imageFilePath) !== uploadsDirectory) {
+      return res.status(400).json({ message: "Der gespeicherte Bildpfad ist ungültig." });
+    }
+
+    try {
+      await unlink(imageFilePath);
+    } catch (error) {
+      if (error.code !== "ENOENT") {
+        throw error;
+      }
+    }
+
+    recipe.image = "";
+    const updatedRecipe = await recipe.save();
+
+    res.status(200).json({
+      message: "Rezeptbild wurde entfernt.",
+      recipe: updatedRecipe
+    });
+  } catch (error) {
+    console.error("Fehler beim Entfernen des Rezeptbildes:", error);
+    res.status(500).json({ message: "Interner Serverfehler!" });
+  }
 };

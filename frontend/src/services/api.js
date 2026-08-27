@@ -43,9 +43,14 @@ function getAuthErrorMessage(responseData, fallbackMessage) {
   return fallbackMessage
 }
 
-function createApiError(message, status) {
+function createApiError(message, status, errors) {
   const error = new Error(message)
   error.status = status
+
+  if (Array.isArray(errors)) {
+    error.errors = errors
+  }
+
   return error
 }
 
@@ -222,9 +227,11 @@ export async function createRecipe(data) {
     const responseData = await response.json().catch(() => null)
 
     if (!response.ok) {
-      const message = responseData && responseData.message ? responseData.message : "Rezept konnte nicht erstellt werden!"
-
-      throw createApiError(message, response.status)
+      throw createApiError(
+        getAuthErrorMessage(responseData, "Rezept konnte nicht erstellt werden!"),
+        response.status,
+        responseData?.errors
+      )
     }
 
     return responseData
@@ -250,7 +257,8 @@ export async function updateRecipe(id, data) {
     if (!response.ok) {
       throw createApiError(
         getAuthErrorMessage(responseData, "Rezept konnte nicht aktualisiert werden!"),
-        response.status
+        response.status,
+        responseData?.errors
       )
     }
 
@@ -309,4 +317,23 @@ export async function uploadRecipeImage(id, file) {
   } catch (error) {
     throw error
   }
+}
+
+export async function deleteRecipeImage(id) {
+  // Entfernt das Bild eines Rezepts (auth-pflichtig, nur Autor)
+  const response = await fetch(`${API_BASE_URL}/recipes/${id}/image`, {
+    method: "DELETE",
+    credentials: "include"
+  });
+
+  const responseData = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw createApiError(
+      getAuthErrorMessage(responseData, "Rezeptbild konnte nicht entfernt werden!"),
+      response.status
+    );
+  }
+
+  return responseData;
 }

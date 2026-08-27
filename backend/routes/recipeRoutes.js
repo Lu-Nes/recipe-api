@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { body, param, query, validationResult } from "express-validator";
-import { createRecipe, getRecipes, getRecipeById, updateRecipe, deleteRecipe, getMyRecipes, uploadRecipeImage, requireRecipeOwner } from "../controllers/recipeController.js";
+import { createRecipe, getRecipes, getRecipeById, updateRecipe, deleteRecipe, getMyRecipes, uploadRecipeImage, deleteRecipeImage, requireRecipeOwner } from "../controllers/recipeController.js";
 import requireAuth from "../middleware/auth.js";
 import upload from "../middleware/upload.js";
 
@@ -160,6 +160,18 @@ router
         upload.single("image"),
         uploadRecipeImage
     );
+
+
+// DELETE /recipes/:id/image - Bild eines Rezepts entfernen
+router
+  .delete(
+    "/:id/image",
+    requireAuth,
+    validateRecipeId,
+    handleValidationErrors,
+    requireRecipeOwner("Du hast keine Berechtigung das Bild dieses Rezepts zu entfernen!"),
+    deleteRecipeImage
+  );
 
 
 

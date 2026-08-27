@@ -1,13 +1,14 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { fetchRecipeById, updateRecipe } from '../services/api';
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import RecipeForm from "../components/RecipeForm";
+import { fetchRecipeById, updateRecipe } from "../services/api";
 
 function getEntityId(value) {
   if (!value) {
     return null;
   }
 
-  const id = typeof value === 'object' ? value._id ?? value.id : value;
+  const id = typeof value === "object" ? value._id ?? value.id : value;
 
   if (id === undefined || id === null) {
     return null;
@@ -27,17 +28,11 @@ function isRecipeOwner(recipe, currentUser) {
 function EditRecipe({ currentUser, onSessionExpired }) {
   const { id } = useParams();
   const navigate = useNavigate();
-
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    ingredients: '',
-    steps: ''
-  });
-
-  const [isLoading, setIsLoading] = useState(true);   // Rezept wird geladen
-  const [isSaving, setIsSaving] = useState(false);    // Änderungen werden gespeichert
+  const [formData, setFormData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true); // Rezept wird geladen
+  const [isSaving, setIsSaving] = useState(false); // Änderungen werden gespeichert
   const [error, setError] = useState(null);
+  const [submissionError, setSubmissionError] = useState(null);
   const [recipe, setRecipe] = useState(null);
 
   useEffect(() => {
@@ -45,30 +40,26 @@ function EditRecipe({ currentUser, onSessionExpired }) {
       try {
         setIsLoading(true);
         setError(null);
+        setSubmissionError(null);
         setRecipe(null);
+        setFormData(null);
 
         const data = await fetchRecipeById(id);
-        console.log('Rezept zum Bearbeiten (Rohdaten):', data);
-
         const loadedRecipe = data && data.recipe ? data.recipe : data;
 
         if (!isRecipeOwner(loadedRecipe, currentUser)) {
-          setError('Du darfst dieses Rezept nicht bearbeiten.');
+          setError("Du darfst dieses Rezept nicht bearbeiten.");
           return;
         }
 
         setRecipe(loadedRecipe);
-
         setFormData({
-          title: loadedRecipe.title || '',
-          description: loadedRecipe.description || '',
-          // Arrays in Textareas umwandeln (eine Zeile pro Eintrag)
+          title: loadedRecipe.title || "",
+          description: loadedRecipe.description || "",
           ingredients: Array.isArray(loadedRecipe.ingredients)
-            ? loadedRecipe.ingredients.join('\n')
-            : '',
-          steps: Array.isArray(loadedRecipe.steps)
-            ? loadedRecipe.steps.join('\n')
-            : ''
+            ? loadedRecipe.ingredients
+            : [""],
+          steps: Array.isArray(loadedRecipe.steps) ? loadedRecipe.steps : [""]
         });
       } catch (error) {
         if (error.status === 401) {
@@ -76,8 +67,8 @@ function EditRecipe({ currentUser, onSessionExpired }) {
           return;
         }
 
-        console.error('Fehler beim Laden des Rezepts zum Bearbeiten:', error);
-        setError(error.message || 'Rezept konnte nicht geladen werden.');
+        console.error("Fehler beim Laden des Rezepts zum Bearbeiten:", error);
+        setError(error.message || "Rezept konnte nicht geladen werden.");
       } finally {
         setIsLoading(false);
       }
@@ -86,41 +77,15 @@ function EditRecipe({ currentUser, onSessionExpired }) {
     loadRecipe();
   }, [currentUser, id, onSessionExpired]);
 
-  const handleChange = event => {
-    const { name, value } = event.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async event => {
-    event.preventDefault();
-
-    // Textareas in Arrays umwandeln (eine Zeile = ein Eintrag)
-    const ingredientsArray = formData.ingredients
-      .split('\n')
-      .map(item => item.trim())
-      .filter(item => item !== '');
-
-    const stepsArray = formData.steps
-      .split('\n')
-      .map(item => item.trim())
-      .filter(item => item !== '');
-
-    const payload = {
-      title: formData.title,
-      description: formData.description,
-      ingredients: ingredientsArray,
-      steps: stepsArray
-    };
-
+  const handleSubmit = async payload => {
     try {
       setIsSaving(true);
-      setError(null);
+      setSubmissionError(null);
 
-      const updatedRecipe = await updateRecipe(id, payload);
-      console.log('Aktualisiertes Rezept:', updatedRecipe);
-
-      // Nach dem Speichern zurück zur Detailseite
-      navigate(`/recipes/${id}`);
+      await updateRecipe(id, payload);
+      navigate(`/recipes/${id}`, {
+        state: { recipeUpdated: true }
+      });
     } catch (error) {
       if (error.status === 401) {
         onSessionExpired();
@@ -129,10 +94,12 @@ function EditRecipe({ currentUser, onSessionExpired }) {
 
       if (error.status === 403 || error.status === 404) {
         setRecipe(null);
+        setError(error.message || "Rezept konnte nicht aktualisiert werden.");
+        return;
       }
 
-      console.error('Fehler beim Aktualisieren des Rezepts:', error);
-      setError(error.message || 'Rezept konnte nicht aktualisiert werden.');
+      console.error("Fehler beim Aktualisieren des Rezepts:", error);
+      setSubmissionError(error);
     } finally {
       setIsSaving(false);
     }
@@ -156,7 +123,7 @@ function EditRecipe({ currentUser, onSessionExpired }) {
     );
   }
 
-  if (!recipe) {
+  if (!recipe || !formData) {
     return (
       <section className="page">
         <h1>Rezept bearbeiten</h1>
@@ -166,64 +133,23 @@ function EditRecipe({ currentUser, onSessionExpired }) {
   }
 
   return (
-    <section className="page">
-      <h1>Rezept bearbeiten</h1>
-      <p>Bearbeite dein Rezept mit der ID {id}.</p>
+    <section className="page recipe-form-page">
+      <header className="recipe-form-page__header">
+        <h1>Rezept bearbeiten</h1>
+        <p>Aktualisiere die Angaben zu deinem Rezept.</p>
+      </header>
 
-      {error && (
-        <p className="error-text">
-          Fehler: {error}
-        </p>
-      )}
-
-      <form className="form" onSubmit={handleSubmit}>
-        <label htmlFor="title">Titel</label>
-        <input
-          id="title"
-          name="title"
-          type="text"
-          placeholder="Titel des Rezepts"
-          value={formData.title}
-          onChange={handleChange}
-          required
-        />
-
-        <label htmlFor="description">Beschreibung (optional)</label>
-        <textarea
-          id="description"
-          name="description"
-          placeholder="Kurze Beschreibung"
-          value={formData.description}
-          onChange={handleChange}
-          rows="4"
-        />
-
-        <label htmlFor="ingredients">Zutaten</label>
-        <textarea
-          id="ingredients"
-          name="ingredients"
-          placeholder="Eine Zutat pro Zeile"
-          value={formData.ingredients}
-          onChange={handleChange}
-          rows="4"
-          required
-        />
-
-        <label htmlFor="steps">Zubereitungsschritte</label>
-        <textarea
-          id="steps"
-          name="steps"
-          placeholder="Beschreibe die Schritte"
-          value={formData.steps}
-          onChange={handleChange}
-          rows="4"
-          required
-        />
-
-        <button type="submit" disabled={isSaving}>
-          {isSaving ? 'Rezept wird gespeichert...' : 'Änderungen speichern'}
-        </button>
-      </form>
+      <RecipeForm
+        key={id}
+        initialValues={formData}
+        onSubmit={handleSubmit}
+        onCancel={() => navigate(`/recipes/${id}`)}
+        isSubmitting={isSaving}
+        submissionError={submissionError}
+        onErrorClear={() => setSubmissionError(null)}
+        submitLabel="Änderungen speichern"
+        submittingLabel="Rezept wird gespeichert..."
+      />
     </section>
   );
 }

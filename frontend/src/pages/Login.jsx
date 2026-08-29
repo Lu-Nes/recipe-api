@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { loginUser } from "../services/api";
 
 function getErrorMessage(error, fallbackMessage) {
@@ -83,47 +83,71 @@ function Login({ setIsLoggedIn }) {
   };
 
   return (
-    <section className="page">
-      <h1>Login</h1>
-      <p>Melde dich an, um deine Rezepte zu verwalten.</p>
-      <form className="form" onSubmit={event => handleSubmit(event)}>
+    <section className="page auth-page" aria-labelledby="login-title">
+      <form
+        className="form auth-form"
+        onSubmit={event => handleSubmit(event)}
+      >
+        <header className="auth-form__header">
+          <h1 id="login-title">Willkommen zurück</h1>
+          <p>
+            Melde dich an und verwalte deine persönliche Rezeptsammlung.
+          </p>
+        </header>
+
         {registrationMessage !== "" && (
           <p className="form-message form-message--success" role="status">
             {registrationMessage}
           </p>
         )}
 
-        <label htmlFor="email">E-Mail</label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          placeholder="E-Mail eingeben"
-          value={formData.email}
-          onChange={event => handleChange(event)}
-          required
-        />
-
-        <label htmlFor="password">Passwort</label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          placeholder="Passwort eingeben"
-          value={formData.password}
-          onChange={event => handleChange(event)}
-          required
-        />
-
-        <button type="submit" disabled={isLoading}>
-          {isLoading ? "Anmelden..." : "Anmelden"}
-        </button>
-
         {errorMessage !== "" && (
           <p className="form-message form-message--error" role="alert">
             {errorMessage}
           </p>
         )}
+
+        <div className="auth-form__fields">
+          <div className="auth-form__field">
+            <label htmlFor="email">E-Mail</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              placeholder="E-Mail eingeben"
+              value={formData.email}
+              onChange={event => handleChange(event)}
+              required
+            />
+          </div>
+
+          <div className="auth-form__field">
+            <label htmlFor="password">Passwort</label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              placeholder="Passwort eingeben"
+              value={formData.password}
+              onChange={event => handleChange(event)}
+              required
+            />
+          </div>
+        </div>
+
+        <button
+          className="button auth-form__submit"
+          type="submit"
+          disabled={isLoading}
+        >
+          {isLoading ? "Anmelden..." : "Anmelden"}
+        </button>
+
+        <p className="auth-form__switch">
+          <Link to="/register">Noch kein Konto? Jetzt registrieren</Link>
+        </p>
       </form>
     </section>
   );

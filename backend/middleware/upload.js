@@ -1,33 +1,25 @@
 import multer from "multer";
-import path from "path";
-import fs from "fs";
 
-
-// Ordner für Uploads (wird erstellt, falls nicht vorhanden)
-const uploadsDir = "uploads";
-
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir);
-}
 
 // Speicher-Konfiguration für Multer
-const storage = multer.diskStorage({
-    // Zielordner für die Bilder
-    destination: (req, file, cb) => {
-        cb(null, uploadsDir);
-    },
-
-    // Dateiname (z.B. 1731523456789-dateiname.jpg)
-    filename: (req, file, cb) => {
-        const ext = path.extname(file.originalname);
-        const baseName = path.basename(file.originalname, ext);
-        const filename = Date.now() + "-" + baseName + ext;
-        cb(null, filename);
-    }
-});
+const storage = multer.memoryStorage();
 
 // Multer-Instanz
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024
+  },
+  fileFilter: (req, file, cb) => {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.mimetype)) {
+      const error = new Error("Nur JPEG-, PNG- und WebP-Bilder sind erlaubt!");
+      error.code = "INVALID_FILE_TYPE";
+      return cb(error);
+    }
+
+    cb(null, true);
+  }
+});
 
 
 export default upload;

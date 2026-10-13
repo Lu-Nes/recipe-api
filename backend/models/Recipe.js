@@ -21,6 +21,10 @@ const recipeSchema = new Schema({
         type: String,
         default: ""
     },
+    imageFileId: {
+        type: String,
+        default: ""
+    },
     prepTime: {
         type: Number,
         default: 0

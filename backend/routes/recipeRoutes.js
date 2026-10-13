@@ -7,6 +7,24 @@ import upload from "../middleware/upload.js";
 
 const router = Router();
 
+const uploadImage = (req, res, next) => {
+  upload.single("image")(req, res, error => {
+    if (error) {
+      if (error.code === "LIMIT_FILE_SIZE") {
+        return res.status(413).json({ message: "Das Bild darf maximal 10 MB groß sein!" });
+      }
+
+      if (error.code === "INVALID_FILE_TYPE") {
+        return res.status(400).json({ message: error.message });
+      }
+
+      return next(error);
+    }
+
+    next();
+  });
+};
+
 const validateRecipeId = param("id")
     .isMongoId()
     .withMessage("Ungültige Rezept-ID");
@@ -157,7 +175,7 @@ router
         handleValidationErrors,
         requireRecipeOwner("Du hast keine Berechtigung das Bild dieses Rezepts zu ändern!"),
         // Die Eigentümerschaft wird vor Multer geprüft, damit abgelehnte Requests keine Datei speichern.
-        upload.single("image"),
+        uploadImage,
         uploadRecipeImage
     );
 

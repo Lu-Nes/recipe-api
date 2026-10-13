@@ -25,6 +25,18 @@ Die App wird nicht neu gebaut. Vorhandene Architektur, Routen, Komponenten, CRUD
 - Bezeichner im Code auf Englisch schreiben.
 - Bestehenden Codestil erhalten; keine rein kosmetischen Änderungen außerhalb des Arbeitspakets.
 
+## Node-Umgebung für Codex
+
+Vor **jedem Node-/npm-basierten Toolaufruf** (z. B. `node`, `npm`, `npx`, Tests, Lint oder Build) muss Codex im **selben Shell-Aufruf** `nvm` laden und mit `nvm use` die Version aus der `.nvmrc` im Repository-Root aktivieren. Dies gilt auch bei Aufrufen aus `backend/` und `frontend/`.
+
+```bash
+. "$HOME/.config/nvm/nvm.sh" --no-use &&
+  nvm use --silent &&
+  node --version
+```
+
+`node --version` steht hier beispielhaft für den auszuführenden Befehl. Schlägt das Laden oder Aktivieren fehl, darf der eigentliche Befehl **nicht** ausgeführt werden; Codex muss das Problem melden. Keine ungefragten Node-Installationen oder Änderungen an der Shell-Konfiguration. Nicht auf die standardmäßig über `PATH` gefundene Node-Version verlassen.
+
 ## Verbindlicher Branch- und Git-Workflow
 
 Vor jeder Dateiänderung muss LuNes zuerst selbst einen passenden Branch erstellen oder auf den bereits festgelegten Ziel-Branch wechseln.

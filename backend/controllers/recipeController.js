@@ -1,6 +1,10 @@
 import { validationResult } from "express-validator";
+import { randomUUID } from "node:crypto";
 import { unlink } from "node:fs/promises";
 import path from "node:path";
+import { toFile } from "@imagekit/nodejs";
+import sharp from "sharp";
+import imageKit from "../libs/imageKit.js";
 import Recipe from "../models/Recipe.js";
 // import User from "../models/User.js";
 
@@ -240,27 +244,67 @@ export const getMyRecipes = async (req, res) => {
 
 // POST /recipes/:id/image (auth) - Bild zu einem rezept hochladen
 export const uploadRecipeImage = async (req, res) => {
-    try {
-        const recipe = req.recipe;
+  try {
+    const recipe = req.recipe;
 
-        if (!req.file) {
-            return res.status(400).json({ message: "Kein Bild hochgeladen!" });
-        }
-
-        // Pfad, unter dem das Bild erreichbar ist
-        const imagePath = "/uploads/" + req.file.filename;
-        recipe.image = imagePath;
-
-        const updatedRecipe = await recipe.save();
-
-        res.status(200).json({
-            message: "Rezeptbild wurde aktualisiert",
-            recipe: updatedRecipe
-        });
-    } catch (error) {
-        console.error("Fehler beim Hochladen des Rezeptbildes:", error);
-        res.status(500).json({ message: "Interner Serverfehler!" });
+    if (!req.file) {
+      return res.status(400).json({ message: "Kein Bild hochgeladen!" });
     }
+
+    let imageBuffer;
+
+    try {
+      if (!Buffer.isBuffer(req.file.buffer) || req.file.buffer.length === 0) {
+        throw new Error("Leere oder ungültige Bilddaten");
+      }
+
+      const image = sharp(req.file.buffer);
+      const metadata = await image.metadata();
+
+      if (!["jpeg", "png", "webp"].includes(metadata.format)) {
+        throw new Error("Nicht unterstütztes Bildformat");
+      }
+
+      imageBuffer = await image
+        .resize({
+          width: 1600,
+          height: 1600,
+          fit: "inside",
+          withoutEnlargement: true
+        })
+        .webp()
+        .toBuffer();
+    } catch {
+      return res.status(400).json({
+        message: "Ungültige Bilddaten! Nur JPEG-, PNG- und WebP-Bilder sind erlaubt."
+      });
+    }
+
+    const fileName = `${randomUUID()}.webp`;
+    const uploadedImage = await imageKit.files.upload({
+      file: await toFile(imageBuffer, fileName, { type: "image/webp" }),
+      fileName,
+      folder: "/recipe-api/recipes"
+    });
+
+    if (!uploadedImage.url || !uploadedImage.fileId) {
+      throw new Error("ImageKit hat keine Bild-URL oder Datei-ID zurückgegeben.");
+    }
+
+    // Bild erst nach erfolgreichem ImageKit-Upload dem Rezept zuordnen
+    recipe.image = uploadedImage.url;
+    recipe.imageFileId = uploadedImage.fileId;
+
+    const updatedRecipe = await recipe.save();
+
+    res.status(200).json({
+      message: "Rezeptbild wurde aktualisiert",
+      recipe: updatedRecipe
+    });
+  } catch (error) {
+    console.error("Fehler beim Hochladen des Rezeptbildes:", error);
+    res.status(500).json({ message: "Interner Serverfehler!" });
+  }
 };
 
 

@@ -280,6 +280,8 @@ export const uploadRecipeImage = async (req, res) => {
       });
     }
 
+    const previousImage = recipe.image;
+    const previousImageFileId = recipe.imageFileId;
     const fileName = `${randomUUID()}.webp`;
     const uploadedImage = await imageKit.files.upload({
       file: await toFile(imageBuffer, fileName, { type: "image/webp" }),
@@ -295,7 +297,30 @@ export const uploadRecipeImage = async (req, res) => {
     recipe.image = uploadedImage.url;
     recipe.imageFileId = uploadedImage.fileId;
 
-    const updatedRecipe = await recipe.save();
+    let updatedRecipe;
+
+    try {
+      updatedRecipe = await recipe.save();
+    } catch (error) {
+      recipe.image = previousImage;
+      recipe.imageFileId = previousImageFileId;
+
+      try {
+        await imageKit.files.delete(uploadedImage.fileId);
+      } catch (cleanupError) {
+        console.error("Fehler beim Bereinigen des neuen Rezeptbildes:", cleanupError);
+      }
+
+      throw error;
+    }
+
+    if (previousImageFileId) {
+      try {
+        await imageKit.files.delete(previousImageFileId);
+      } catch (cleanupError) {
+        console.error("Fehler beim Löschen des bisherigen Rezeptbildes:", cleanupError);
+      }
+    }
 
     res.status(200).json({
       message: "Rezeptbild wurde aktualisiert",
